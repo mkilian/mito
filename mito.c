@@ -1,9 +1,13 @@
 /*
- * $Id: mito.c,v 1.12 1996/05/20 17:51:26 kilian Exp $
+ * $Id: mito.c,v 1.13 1996/05/21 08:45:25 kilian Exp $
  *
  * mito --- the midi tool
  *
  * $Log: mito.c,v $
+ * Revision 1.13  1996/05/21 08:45:25  kilian
+ * Added memory statistics.
+ * Call compressNoteOff.
+ *
  * Revision 1.12  1996/05/20 17:51:26  kilian
  * Changes due to new track structure/functions.
  * NoteOn/NoteOff pairs are grouped after reading a file.
@@ -390,13 +394,16 @@ static void group(Score *s)
 
 
 /*
- * Ungroup matching NoteOn/NoteOff pairs.
+ * Ungroup matching NoteOn/NoteOff pairs and compress NoteOff events.
  */
 static void ungroup(Score *s)
 {
   int t, n;
   for(t = 0; t < s->ntrk; t++)
-    n = unpairNotes(s->tracks[t]);
+    {
+      n = unpairNotes(s->tracks[t]);
+      compressNoteOff(s->tracks[t], 0);
+    }
 }
 
 
@@ -673,6 +680,17 @@ static int dofile(const char *spec, int flags)
 }
 
 
+static void printstat(void)
+{
+  fprintf(stderr, "maxused:  %lu\n"
+                  "maxalloc: %lu\n"
+                  "waisted:  %lu\n",
+          maxused * sizeof(MFEvent),
+          maxallocated * sizeof(MFEvent),
+          (maxallocated - maxused) * sizeof(MFEvent));
+}
+
+
 int main(int argc, char *argv[])
 {
   int opt;
@@ -681,6 +699,8 @@ int main(int argc, char *argv[])
 
   FILE *outf;
   char *outname = NULL;
+
+  atexit(printstat);
 
   /*
    * Parse command line arguments.
