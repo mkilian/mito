@@ -1,10 +1,13 @@
 /*
- * $Id: score.c,v 1.4 1996/04/06 23:02:42 kilian Exp $
+ * $Id: score.c,v 1.5 1996/04/07 16:45:15 kilian Exp $
  *
  * Reading and writing of complete scores.
  *
  * $Log: score.c,v $
- * Revision 1.4  1996/04/06 23:02:42  kilian
+ * Revision 1.5  1996/04/07 16:45:15  kilian
+ * Added maxdescs and maxempty parameters to score_new and score_read.
+ *
+ * Revision 1.4  1996/04/06  23:02:42  kilian
  * Changes due to the new track structure.
  *
  * Revision 1.3  1996/04/02  23:25:23  kilian
@@ -31,8 +34,14 @@
 
 /*
  * Create a new score.
+ * If `maxdesc' is nonzero, the track will be compressed whenever the
+ * number of link-events reaches `maxdescs / 10000' times the number of
+ * total events within the track. The same holds for `maxempty', which
+ * specifies the maximum relative number of empty (deleted) events
+ * before auto-compression. A reasonable value for both parameters may
+ * be 1000, i.e. 10% of total events.
  */
-Score *score_new(void)
+Score *score_new(unsigned long maxdescs, unsigned long maxempty)
 {
   Score *s;
 
@@ -43,6 +52,8 @@ Score *score_new(void)
   s->ntrk = 0;
   s->div = 120;
   s->tracks = NULL;
+  s->maxdescs = maxdescs;
+  s->maxempty = maxempty;
 
   return s;
 }
@@ -60,7 +71,7 @@ int score_add(Score *s)
     return 0;
 
   s->tracks = nt;
-  if(!(s->tracks[s->ntrk] = track_new(0, 0)))
+  if(!(s->tracks[s->ntrk] = track_new(s->maxdescs, s->maxempty)))
     return 0;
 
   s->ntrk++;
@@ -223,15 +234,16 @@ static long read_track(MBUF *b)
 /*
  * Read the next score from a buffer (there may be multiple scores
  * within one buffer).
+ * The meaning of `maxdescs' and `maxempty' is the same as in `score_new'.
  * If the score header is missing, default values are assumed.
  */
-Score *score_read(MBUF *b)
+Score *score_read(MBUF *b, unsigned long maxdescs, unsigned long maxempty)
 {
   long size;
   int ntrk = 0;
   Score *s;
 
-  if(!(s = score_new()))
+  if(!(s = score_new(maxdescs, maxempty)))
     return NULL;
 
   if((size = read_header(b, s)) < 0)
