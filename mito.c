@@ -1,9 +1,12 @@
 /*
- * $Id: mito.c,v 1.10 1996/04/30 14:21:32 kilian Exp $
+ * $Id: mito.c,v 1.11 1996/05/18 03:37:10 kilian Exp $
  *
  * mito --- the midi tool
  *
  * $Log: mito.c,v $
+ * Revision 1.11  1996/05/18 03:37:10  kilian
+ * Fixed typo.
+ *
  * Revision 1.10  1996/04/30 14:21:32  kilian
  * Started to support note events with durations.
  *
@@ -225,7 +228,7 @@ static void showtracks(Score *s, int flags)
                   midiprint(MPNote, "%8ld Note %hd %hd %hd %ld %hd", e->time,
                             e->msg.noteon.chn, e->msg.noteon.note,
                             e->msg.noteon.velocity,
-                            e->msg.noteon.duration, e->msg-noteon.release);
+                            e->msg.noteon.duration, e->msg.noteon.release);
               	else
                   midiprint(MPNote, "%8ld NoteOn %hd %hd %hd", e->time,
                             e->msg.noteon.chn, e->msg.noteon.note,
