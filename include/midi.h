@@ -1,9 +1,12 @@
 /*
- * $Id: midi.h,v 1.2 1996/04/02 10:17:06 kilian Exp $
+ * $Id: midi.h,v 1.3 1996/05/20 04:41:42 kilian Exp $
  *
  * Main include file for the midi library.
  *
  * $Log: midi.h,v $
+ * Revision 1.3  1996/05/20 04:41:42  kilian
+ * Added util.h.
+ *
  * Revision 1.2  1996/04/02 10:17:06  kilian
  * Added score.h.
  *
@@ -20,5 +23,6 @@
 #include "chunk.h"
 #include "event.h"
 #include "score.h"
+#include "util.h"
 
 #endif /* __MIDI_H__ */
