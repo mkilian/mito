@@ -1,9 +1,14 @@
 /*
- * $Id: mito.c,v 1.11 1996/05/18 03:37:10 kilian Exp $
+ * $Id: mito.c,v 1.12 1996/05/20 17:51:26 kilian Exp $
  *
  * mito --- the midi tool
  *
  * $Log: mito.c,v $
+ * Revision 1.12  1996/05/20 17:51:26  kilian
+ * Changes due to new track structure/functions.
+ * NoteOn/NoteOff pairs are grouped after reading a file.
+ * When writing a MIDI file, the grouped Note events are ungrouped.
+ *
  * Revision 1.11  1996/05/18 03:37:10  kilian
  * Fixed typo.
  *
@@ -57,7 +62,7 @@
 
 static void usage(void)
 {
-  fputs("usage: mito [-hleqnm012cCV] [-o file] [-d div] {[file][@sl]}...\n"
+  fputs("usage: mito [-hleqnm012c] [-o file] [-d div] {[file][@sl]}...\n"
         "overall options:\n"
         "    -h:  show score headers\n"
         "    -l:  show track lengths\n"
@@ -72,10 +77,7 @@ static void usage(void)
         "    -[012]:  use this output format (default from first score)\n"
         "    -d:  use output division `div' (default from first score)\n"
         "    -n:  no header; only write the tracks\n"
-        "    -c:  concat all tracks to one\n"
-        "debugging:\n"
-        "    -C:  turn on full consistency checks\n"
-        "    -V:  turn on verbose auto-cleanup\n", stderr);
+        "    -c:  concat all tracks to one\n", stderr);
   exit(EXIT_FAILURE);
 }
 
@@ -202,9 +204,7 @@ static void showtracks(Score *s, int flags)
 
   for(t = 0; t < s->ntrk; t++)
     {
-      long ne = s->tracks[t]->total -
-                s->tracks[t]->descs -
-                s->tracks[t]->empty;
+      unsigned long ne = track_nevents(s->tracks[t]);
 
       track_rewind(s->tracks[t]);
 
@@ -224,12 +224,12 @@ static void showtracks(Score *s, int flags)
                           e->msg.noteoff.velocity);
                 continue;
               case NOTEON:
-              	if(e->msg.noteon.duration)
+                if(e->msg.noteon.duration)
                   midiprint(MPNote, "%8ld Note %hd %hd %hd %ld %hd", e->time,
                             e->msg.noteon.chn, e->msg.noteon.note,
                             e->msg.noteon.velocity,
                             e->msg.noteon.duration, e->msg.noteon.release);
-              	else
+                else
                   midiprint(MPNote, "%8ld NoteOn %hd %hd %hd", e->time,
                             e->msg.noteon.chn, e->msg.noteon.note,
                             e->msg.noteon.velocity);
@@ -308,6 +308,10 @@ static void showtracks(Score *s, int flags)
                 midiprint(MPNote, "%8ld CuePoint `%s'", e->time,
                           strdat(e->msg.cuepoint.text));
                 continue;
+              case PORTNUMBER:
+                midiprint(MPNote, "%8ld PortNumber %hd", e->time,
+                          e->msg.portnumber.port);
+                continue;
               case ENDOFTRACK:
                 midiprint(MPNote, "%8ld EndOfTrack", e->time);
                 continue;
@@ -372,6 +376,28 @@ static void adjusttracks(Score *s, long from, long to)
   s->ntrk = to + 1 - from;
 }
 
+
+/*
+ * Group matching NoteOn/NoteOff pairs.
+ */
+static void group(Score *s)
+{
+  int t, n;
+  for(t = 0; t < s->ntrk; t++)
+    if((n = pairNotes(s->tracks[t])) != 0)
+      midiprint(MPWarn, "track %d: %d unmatched notes", t, n);
+}
+
+
+/*
+ * Ungroup matching NoteOn/NoteOff pairs.
+ */
+static void ungroup(Score *s)
+{
+  int t, n;
+  for(t = 0; t < s->ntrk; t++)
+    n = unpairNotes(s->tracks[t]);
+}
 
 
 /*
@@ -555,7 +581,7 @@ static int dofile(const char *spec, int flags)
 
   error = 0;
 
-  if(!(s = score_read(b, 1000, 1000)))
+  if(!(s = score_read(b)))
     {
       midiprint(MPFatal, "no headers or tracks found");
       return 1;
@@ -567,6 +593,8 @@ static int dofile(const char *spec, int flags)
     {
       if(tr1 >= 0)
         adjusttracks(s, tr0, tr1);
+
+      group(s);
 
       if(flags & MERGETRACKS)
         mergetracks(s);
@@ -584,6 +612,7 @@ static int dofile(const char *spec, int flags)
 
       if(outb)
         {
+          ungroup(s);
           write_tracks(outb, s, flags & CONCATTRACKS);
           if(flags & CONCATTRACKS)
             outntrk++;
@@ -596,12 +625,14 @@ static int dofile(const char *spec, int flags)
 
   scorenum++;
 
-  while(mbuf_rem(b) > 0 && (s = score_read(b, 1000, 1000)))
+  while(mbuf_rem(b) > 0 && (s = score_read(b)))
     {
       if(sc1 < 0 || sc0 <= scorenum && scorenum <= sc1)
         {
           if(tr1 >= 0)
             adjusttracks(s, tr0, tr1);
+
+          group(s);
 
           if(flags & MERGETRACKS)
             mergetracks(s);
@@ -619,6 +650,7 @@ static int dofile(const char *spec, int flags)
 
           if(outb)
             {
+              ungroup(s);
               write_tracks(outb, s, flags & CONCATTRACKS);
               if(flags & CONCATTRACKS)
                 outntrk++;
@@ -653,7 +685,7 @@ int main(int argc, char *argv[])
   /*
    * Parse command line arguments.
    */
-  while((opt = getopt(argc, argv, ":hleqnmo:012cfd:CV")) != -1)
+  while((opt = getopt(argc, argv, ":hleqnmo:012cfd:")) != -1)
     switch(opt)
       {
         case 'h':
@@ -695,12 +727,6 @@ int main(int argc, char *argv[])
         case 'd':
           if(sscanf(optarg, "%d", &outdiv) != 1 || !outdiv)
             usage();
-          break;
-        case 'C':
-          track_debug |= TRACK_CHECK;
-          break;
-        case 'V':
-          track_debug |= TRACK_ACV;
           break;
         default:
           usage();
