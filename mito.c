@@ -1,10 +1,13 @@
 /*
- * $Id: mito.c,v 1.6 1996/04/06 23:04:27 kilian Exp $
+ * $Id: mito.c,v 1.7 1996/04/07 16:47:23 kilian Exp $
  *
  * mito --- the midi tool
  *
  * $Log: mito.c,v $
- * Revision 1.6  1996/04/06 23:04:27  kilian
+ * Revision 1.7  1996/04/07 16:47:23  kilian
+ * Added maxdescs and maxempty parameters to calls to score_read.
+ *
+ * Revision 1.6  1996/04/06  23:04:27  kilian
  * Changes due to the new track structure.
  *
  * Revision 1.5  1996/04/04  16:26:34  kilian
@@ -541,7 +544,7 @@ static int dofile(const char *spec, int flags)
 
   error = 0;
 
-  if(!(s = score_read(b)))
+  if(!(s = score_read(b, 1000, 1000)))
     {
       midiprint(MPFatal, "no headers or tracks found");
       return 1;
@@ -582,7 +585,7 @@ static int dofile(const char *spec, int flags)
 
   scorenum++;
 
-  while(mbuf_rem(b) > 0 && (s = score_read(b)))
+  while(mbuf_rem(b) > 0 && (s = score_read(b, 1000, 1000)))
     {
       if(sc1 < 0 || sc0 <= scorenum && scorenum <= sc1)
         {
