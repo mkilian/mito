@@ -1,10 +1,13 @@
 /*
- * $Id: event.c,v 1.5 1996/04/04 16:25:04 kilian Exp $
+ * $Id: event.c,v 1.6 1996/04/07 19:18:01 kilian Exp $
  *
  * Read midi file messages and events.
  *
  * $Log: event.c,v $
- * Revision 1.5  1996/04/04 16:25:04  kilian
+ * Revision 1.6  1996/04/07 19:18:01  kilian
+ * On cleanup, set the command to `Empty'.
+ *
+ * Revision 1.5  1996/04/04  16:25:04  kilian
  * Issue an error message if arguments of several messages are not data bytes.
  *
  * Revision 1.4  1996/04/03  14:26:57  kilian
@@ -455,6 +458,7 @@ void clear_message(MFMessage *msg)
       case CUEPOINT:            free(msg->cuepoint.text); break;
       case SEQUENCERSPECIFIC:   free(msg->sequencerspecific.data); break;
     }
+  msg->empty.type = EMPTY;
 }
 
 
