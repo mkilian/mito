@@ -1,0 +1,193 @@
+########################################################################
+# $Id: Rules,v 1.4 1996/03/03 13:14:10 kilian Exp $
+#
+# Make variables and rules common for all subdirectories.
+# This file should be included by all makefiles, e.g. by a line
+# `include $(TOP)/Rules' at the beginning of the makefile.
+# The makefile itself only have to specify special variables and rules
+# for it's own directory.
+#
+# $Log: Rules,v $
+# Revision 1.4  1996/03/03 13:14:10  kilian
+# checked in with -k by kilian at 1996/04/01 19:10:24
+#
+# Revision 1.4  1996/03/03  13:14:10  kilian
+# Added target `install' (defaults to do nothing) and some variables
+# suitable for installation.
+# Added lots of missing .PHONY targets.
+#
+# Revision 1.3  1996/02/29  04:25:57  kilian
+# Added `TAGS' and `tags' to the list of files deleted in target `realclean'.
+#
+# Revision 1.2  1996/02/12  14:35:49  kilian
+# New var `$SUBMAKE' for explicit recursive makes.
+#
+# Revision 1.1  1996/02/05  16:14:09  kilian
+# Initial revision
+#
+# Revision 1.1  1996/01/05  10:51:25  kilian
+# Initial revision
+#
+########################################################################
+
+########################################################################
+# Variables.
+########################################################################
+
+# The C compiler.
+CC        = gcc
+
+# Optimization and or debugging flags for compiler and linker.
+# To override flags on the commandline, use these rather than `CFLAGS'
+# and `LDFLAGS'.
+COPTS     = -Wall -Wno-parentheses -g
+LDOPTS    = -g
+
+# Compiler and linker flags.
+CFLAGS    = $(COPTS) $(INCPATH)
+LDFLAGS   = $(LDOPTS) $(LIBPATH)
+
+# Which programs to use for installation.
+INSTALL       = install -c
+INSTALLBIN    = $(INSTALL) -s -m 755
+INSTALLSCRIPT = $(INSTALL) -m 755
+INSTALLLIB    = $(INSTALL) -m 644
+INSTALLDATA   = $(INSTALL) -m 644
+
+# Where to install programs, scripts and data.
+DST           = /usr/local
+BINDIR        = $(DST)/bin
+SCRIPTDIR     = $(BINDIR)
+LIBDIR        = $(DST)/lib
+
+# Default toplevel directory. For subdirectories, make will be called
+# with `TOP=../$(TOP)'.
+TOP       = .
+
+# Search paths for local header files and libraries.
+INCPATH   = -I$(TOP)/include
+LIBPATH   =
+
+# Instead of setting `LIBPATH', we use `VPATH' for local libs.
+LIBDIR    = $(TOP)/lib
+VPATH     = $(LIBDIR)
+
+# How to get dependencies. For gcc, the option `-MM' does the job.
+CDEP      = $(CC) $(CFLAGS) -MM
+
+# For doing recursive makes. Call this as `$(SUBMAKE) dir target', where
+# `dir' is the subdirectory in which do make `target'. Note that `dir'
+# should be one simple directory; deeper nested directories (e.g.
+# foo/bar) will not work.
+SUBMAKE   = $(MAKE) TOP=../$(TOP) -C
+
+# Some shell commands not defined by default.
+SED       = sed
+MV        = mv -f
+ECHO      = echo
+
+# Keep co silent.
+COFLAGS   = -q
+
+
+# Names of all C source files (for target `depend'), derived from the
+# variable `OBJS'.
+CFILES    = $(OBJS:.o=.c)
+
+# Names of all object files, derived from the variable `PROGS'.
+OBJS      = $(PROGS:=.o)
+
+# Names of all generated programs. Making realclean (or distclean) will
+# delete all files mentioned in this variable.
+# Of course, this is empty by default.
+PROGS     =
+
+# Names of all scripts.
+SCRIPTS   =
+
+# Names of all generated libraries.
+LIBS      =
+
+
+# Sub directories. Set this variable to contain all sub directories of
+# the current directory, in which a recursive make should be done.
+# This defaults to be empty, too.
+SUBDIRS   =
+
+# Names of all files in the `RCS' directory. This is mainly used in the
+# target `co', which is needed by `depend'. Since this is a variable
+# intended for internal use only, it's name is all lowercase.
+rcsfiles  = $(notdir $(wildcard RCS/*))
+
+# Names of recursive targets. Whenever one of this targets is to be
+# made, the same target is made in all directories specified in
+# `SUBDIRS', first.
+recursive = all depend undepend install clean rcsclean realclean distclean \
+						foolishclean
+
+
+########################################################################
+# Rules.
+########################################################################
+
+# Recursive targets are no real file targets.
+.PHONY: $(recursive)
+
+# Automatic recursive make.
+$(recursive)::
+	@set -e; for i in $(SUBDIRS); do    \
+		$(SUBMAKE) $$i $@;  \
+	done
+
+# Just to keep make silent.
+.PHONY: all
+all::
+
+.PHONY: install
+install::
+
+# Cleaning up.
+.PHONY: clean
+clean::
+	$(RM) *.o core errlist
+
+# Cleaning up unmodified source files.
+.PHONY: rcsclean
+rcsclean::
+	rcsclean
+
+# Cleaning up everything. In addition to making clean and rcsclean, this
+# deletes all programs (defined in `PROGS'), libraries and backup
+# copies.
+.PHONY: realclean distclean
+realclean distclean:: clean rcsclean
+	$(RM) $(PROGS) *.a *.bak *~ TAGS tags
+
+# Yes, you can make even more then distclean :-)
+# This additionally deletes the dependencies from the makefiles.
+.PHONY: foolishclean
+foolishclean:: undepend distclean
+
+# Automatically generate make dependencies.
+.PHONY: depend
+depend:: co
+	@$(MV) Makefile Makefile.bak &&                                     \
+		( $(SED) '/^# DO NOT DELETE/,$$d' < Makefile.bak > Makefile &&    \
+			$(ECHO) '# DO NOT DELETE' >> Makefile &&                        \
+			$(ECHO) '# AUTOMATICALLY GENERATED DEPENDENCIES' >> Makefile && \
+			$(CDEP) $(CFILES) >> Makefile ) ||                              \
+			$(MV) Makefile.bak Makefile
+
+# Delete automatically generated dependencies.
+# I wonder if someone needs this (see also target `foolishclean').
+.PHONY: undepend
+undepend::
+	@$(MV) Makefile Makefile.bak &&                               \
+	$(SED) '/^# DO NOT DELETE/,$$d' < Makefile.bak > Makefile ||  \
+	$(MV) Makefile.bak Makefile
+
+
+# This target (not recursive) checks out all RCS files. It is only of
+# use for bootstrapping `depend'.
+.PHONY: co
+co: $(rcsfiles:,v=)
