@@ -1,9 +1,13 @@
 /*
- * $Id: vld.c,v 1.4 1996/04/03 14:24:31 kilian Exp $
+ * $Id: vld.c,v 1.5 1996/05/21 11:48:00 kilian Exp $
  *
  * Read variable sized quantities and data.
  *
  * $Log: vld.c,v $
+ * Revision 1.5  1996/05/21 11:48:00  kilian
+ * The buffer structure has been hidden. This may allow reading and writing
+ * files directly in future versions.
+ *
  * Revision 1.4  1996/04/03 14:24:31  kilian
  * Fixed some bugs when using mbuf_get.
  * Made argument to vld_size and vld_data const.
@@ -38,24 +42,28 @@
 long read_vlq(MBUF *b)
 {
   long vlq = 0;
-  long i, n = b->n - b->i;
-  unsigned char *ptr = b->b + b->i;
+  unsigned long p = mbuf_pos(b);
+  int n = 0;
+  unsigned char c;
 
-  if(n > 4) n = 4;
-
-  i = 0;
-  while(ptr[i] & 0x80 && n-- > 1)
-    vlq = vlq << 7 | ptr[i++] & 0x7f;
+  while(mbuf_request(b,1) && n++ < 4 && (c = mbuf_get(b)) & 0x80)
+  	vlq = vlq << 7 | c & 0x7f;
 
   if(n < 1)
     {
       midiprint(MPError, "reading vlq: end of input");
+      mbuf_set(b, p);
       return -1;
     }
 
-  vlq = vlq << 7 | ptr[i++];
+  if(c & 0x80)
+    {
+      midiprint(MPError, "reading vlq: out of range");
+      mbuf_set(b, p);
+      return -1;
+    }
 
-  b->i += i;
+  vlq = vlq << 7 | c;
 
   return vlq;
 }
@@ -101,30 +109,32 @@ int write_vlq(MBUF *b, long vlq)
  */
 void *read_vld(MBUF *b)
 {
+  unsigned long p = mbuf_pos(b);
   long length;
-  long i = b->i;
   void *data;
+  char *ptr;
 
   if((length = read_vlq(b)) < 0)
     return NULL;
 
-  if(b->i + length > b->n)
+  if(!mbuf_request(b, length))
     {
       midiprint(MPError, "reading vld: end of input");
-      b->i = i;
+      mbuf_set(b, p);
       return NULL;
     }
 
   if(!(data = malloc(sizeof(long) + length)))
     {
       midiprint(MPFatal, "%s", strerror(errno));
-      b->i = i;
+      mbuf_set(b, p);
       return NULL;
     }
 
   *(long*)data = length;
-  memcpy(data + sizeof(long), b->b + b->i, length);
-  b->i += length;
+  ptr = ((char*)data) + sizeof(long);
+  while(length--)
+  	*ptr++ = mbuf_get(b);
 
   return data;
 }

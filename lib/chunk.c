@@ -1,9 +1,13 @@
 /*
- * $Id: chunk.c,v 1.5 1996/04/06 23:02:19 kilian Exp $
+ * $Id: chunk.c,v 1.6 1996/05/21 11:48:00 kilian Exp $
  *
  * Get header and track chunks of standard midi files.
  *
  * $Log: chunk.c,v $
+ * Revision 1.6  1996/05/21 11:48:00  kilian
+ * The buffer structure has been hidden. This may allow reading and writing
+ * files directly in future versions.
+ *
  * Revision 1.5  1996/04/06 23:02:19  kilian
  * Fix in write_MThd.
  *
@@ -49,50 +53,59 @@ static int tryMThd(MBUF *b, CHUNK *c)
 {
   long size;
   int fmt, ntrk, div;
-  unsigned char *ptr = b->b + b->i;
-  unsigned long i = b->i + 8;
-  unsigned long n = b->n;
+  unsigned long p = mbuf_pos(b);
 
-  if(i >= n || ptr[0] != 'M' || ptr[1] != 'T' || ptr[2] != 'h' || ptr[3] != 'd')
-    return 0;
+  if(!mbuf_request(b, 8) ||
+     mbuf_get(b) != 'M' ||
+     mbuf_get(b) != 'T' ||
+     mbuf_get(b) != 'h' ||
+     mbuf_get(b) != 'd')
+    {
+      mbuf_set(b, p);
+      return 0;
+    }
 
-  size = ptr[4] << 24 | ptr[5] << 16 | ptr[6] << 8 | ptr[7];
+  size = mbuf_get(b) << 24 | mbuf_get(b) << 16 | mbuf_get(b) << 8 | mbuf_get(b);
 
   if(size < 6)
     {
       midiprint(MPError, "skipping header: size too short");
+      mbuf_set(b, p);
       return 0;
     }
   if(size > 6)
     midiprint(MPWarn, "unusual long header: %ld bytes", size);
-  if(i + 6 >= n)
+  if(!mbuf_request(b, 6))
     {
       midiprint(MPError, "skipping header: truncated header at end of file");
+      mbuf_set(b, p);
       return 0;
     }
-  if(i + size >= n)
+  if(!mbuf_request(b, size))
     midiprint(MPWarn, "truncated but usable header at end of file");
 
-  fmt = ptr[8] << 8 | ptr[9];
-  ntrk = ptr[10] << 8 | ptr[11];
-  div = ptr[12] << 8 | ptr[13];
+  fmt = mbuf_get(b) << 8 | mbuf_get(b);
+  ntrk = mbuf_get(b) << 8 | mbuf_get(b);
+  div = mbuf_get(b) << 8 | mbuf_get(b);
   if(fmt < 0 || fmt > 2)
     {
       midiprint(MPError, "skipping header: illegal format %d", fmt);
+      mbuf_set(b, p);
       return 0;
     }
   if(ntrk < 0)
     {
       midiprint(MPError, "skipping header: number of tracks %d", ntrk);
+      mbuf_set(b, p);
       return 0;
     }
   if(!div)
     {
       midiprint(MPError, "skipping header: division is 0");
+      mbuf_set(b, p);
       return 0;
     }
 
-  b->i += 14;
   c->type = MThd;
   c->hdr.mthd.fmt = fmt;
   c->hdr.mthd.ntrk = ntrk;
@@ -105,29 +118,31 @@ static int tryMThd(MBUF *b, CHUNK *c)
 
 /*
  * As above, but for tracks.
- * `mtl', if nonzero, is the maximum allowed track length.
  */
-static int tryMTrk(MBUF *b, CHUNK *c, long mtl)
+static int tryMTrk(MBUF *b, CHUNK *c)
 {
   long size;
-  unsigned char *ptr = b->b + b->i;
-  unsigned long i = b->i + 8;
-  unsigned long n = b->n;
+  unsigned long p = mbuf_pos(b);
 
-  if(i >= n || ptr[0] != 'M' || ptr[1] != 'T' || ptr[2] != 'r' || ptr[3] != 'k')
-    return 0;
+  if(!mbuf_request(b, 8) ||
+     mbuf_get(b) != 'M' ||
+     mbuf_get(b) != 'T' ||
+     mbuf_get(b) != 'r' ||
+     mbuf_get(b) != 'k')
+    {
+      mbuf_set(b, p);
+      return 0;
+    }
 
-  size = ptr[4] << 24 | ptr[5] << 16 | ptr[6] << 8 | ptr[7];
+  size = mbuf_get(b) << 24 | mbuf_get(b) << 16 | mbuf_get(b) << 8 | mbuf_get(b);
 
   if(size < 0)
     {
       midiprint(MPError, "skipping track: negative size %ld", size);
+      mbuf_set(b, p);
       return 0;
     }
-  if(mtl > 0 && size > mtl)
-    midiprint(MPError, "skipping track: track of %ld bytes too large", size);
 
-  b->i += 8;
   c->type = MTrk;
   c->hdr.mtrk.size = size;
 
@@ -148,8 +163,7 @@ static int tryMTrk(MBUF *b, CHUNK *c, long mtl)
  *     number is accepted.
  *   - The division must not be zero.
  *
- * For track chunks, the size must not be negative and not greater than
- * `mtl', if this argument is positive.
+ * For track chunks, the size must not be negative.
  *
  * Only if the above conditions are met, the function returns success.
  * Corrupted headers and tracks are skipped after issuing a warning
@@ -158,31 +172,30 @@ static int tryMTrk(MBUF *b, CHUNK *c, long mtl)
  * The functions returns -1 if no valid chunk is found, otherwise the
  * number of bytes skipped before the chunk (normally 0).
  */
-long search_chunk(MBUF *b, CHUNK *chunk, unsigned long mtl)
+long search_chunk(MBUF *b, CHUNK *chunk)
 {
-  long i = b->i;
+  unsigned long p = mbuf_pos(b);
+  unsigned long i = 0;
 
   /*
    * Search the header including all fields.
    * Corrupted headers are skipped after issuing a warning message.
    */
-  while(b->i < b->n && !tryMThd(b, chunk) && !tryMTrk(b, chunk, mtl))
-    b->i++;
-
-  if(b->i >= b->n)
+  while(mbuf_request(b, 8) && !tryMThd(b, chunk) && !tryMTrk(b, chunk))
     {
-      b->i = i;
-      return -1;
+      (void)mbuf_get(b);
+      i++;
     }
 
-  if(chunk->type == MThd)
-    return b->i - i - 14;
-  else if(chunk->type == MTrk)
-    return b->i - i - 8;
+  if(!mbuf_request(b,1))
+    return -1;
+
+  if(chunk->type == MThd || chunk->type == MTrk)
+    return i;
   else
     {
       midiprint(MPFatal, "no type; this can't happen");
-      b->i = i;
+      mbuf_set(b, p);
       return -1;
     }
 }

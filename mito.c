@@ -1,9 +1,13 @@
 /*
- * $Id: mito.c,v 1.13 1996/05/21 08:45:25 kilian Exp $
+ * $Id: mito.c,v 1.14 1996/05/21 11:48:00 kilian Exp $
  *
  * mito --- the midi tool
  *
  * $Log: mito.c,v $
+ * Revision 1.14  1996/05/21 11:48:00  kilian
+ * The buffer structure has been hidden. This may allow reading and writing
+ * files directly in future versions.
+ *
  * Revision 1.13  1996/05/21 08:45:25  kilian
  * Added memory statistics.
  * Call compressNoteOff.
@@ -523,7 +527,7 @@ static int dofile(const char *spec, int flags)
   FILE *f = stdin;
   static char _name[FILENAME_MAX];
   static char name[FILENAME_MAX];
-  MBUF _b, *b = &_b;
+  MBUF *b;
   Score _s, *s = &_s;
   int scorenum;
 
@@ -578,9 +582,17 @@ static int dofile(const char *spec, int flags)
       return 1;
     }
 
+  if(!(b = mbuf_new()))
+    {
+      midiprint(MPFatal, "%s", strerror(errno));
+      fclose(f);
+      return 1;
+    }
+
   if(read_mbuf(b, f))
     {
       fclose(f);
+      mbuf_free(b);
       return 1;
     }
 
@@ -591,6 +603,7 @@ static int dofile(const char *spec, int flags)
   if(!(s = score_read(b)))
     {
       midiprint(MPFatal, "no headers or tracks found");
+      mbuf_free(b);
       return 1;
     }
 
@@ -632,7 +645,7 @@ static int dofile(const char *spec, int flags)
 
   scorenum++;
 
-  while(mbuf_rem(b) > 0 && (s = score_read(b)))
+  while(mbuf_request(b, 1) && (s = score_read(b)))
     {
       if(sc1 < 0 || sc0 <= scorenum && scorenum <= sc1)
         {
@@ -671,7 +684,7 @@ static int dofile(const char *spec, int flags)
       scorenum++;
     }
 
-  if(mbuf_rem(b) > 0)
+  if(mbuf_request(b, 1))
     midiprint(MPWarn, "garbage at end of input");
 
   mbuf_free(b);
@@ -693,14 +706,13 @@ static void printstat(void)
 
 int main(int argc, char *argv[])
 {
+  unsigned long p;
   int opt;
   int error = 0;
   int flags = 0;
 
   FILE *outf;
   char *outname = NULL;
-
-  atexit(printstat);
 
   /*
    * Parse command line arguments.
@@ -758,11 +770,11 @@ int main(int argc, char *argv[])
 
   if(outname)
     {
-      static MBUF _outb;
-      outb = &_outb;
-      outb->b = NULL;
-      outb->n = 0;
-      outb->i = 0;
+      if(!(outb = mbuf_new()))
+        {
+          perror(outname);
+          return EXIT_FAILURE;
+        }
 
       if(!(flags & NOHEADER) &&
          /* This will be rewritten later to insert the correct values. */
@@ -771,13 +783,20 @@ int main(int argc, char *argv[])
           perror(outname);
           return EXIT_FAILURE;
         }
+
+      p = mbuf_pos(outb);
     }
+
+  atexit(printstat);
 
   if(!argc)
     error = dofile(NULL, flags);
   else
     while(argc--)
       error |= dofile(*argv++, flags);
+
+  if(outb)
+  	p = mbuf_pos(outb) - p;
 
   if(error)
     return EXIT_FAILURE;
@@ -792,7 +811,7 @@ int main(int argc, char *argv[])
       perror(outname);
       return EXIT_FAILURE;
     }
-  else if(outb && (flags & CONCATTRACKS) && !write_MTrk(outb, mbuf_rem(outb)))
+  else if(outb && (flags & CONCATTRACKS) && !write_MTrk(outb, p))
     {
       perror(outname);
       return EXIT_FAILURE;

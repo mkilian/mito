@@ -1,9 +1,13 @@
 /*
- * $Id: buffer.h,v 1.1 1996/04/01 19:10:57 kilian Exp $
+ * $Id: buffer.h,v 1.2 1996/05/21 11:48:00 kilian Exp $
  *
  * In-memory buffer.
  *
  * $Log: buffer.h,v $
+ * Revision 1.2  1996/05/21 11:48:00  kilian
+ * The buffer structure has been hidden. This may allow reading and writing
+ * files directly in future versions.
+ *
  * Revision 1.1  1996/04/01 19:10:57  kilian
  * Initial revision
  *
@@ -18,11 +22,13 @@
 /*
  * Buffer structure containing the midifile.
  */
-typedef struct {
-  unsigned long n;  /* Size of buffer. */
-  unsigned long i;  /* Current position within buffer. */
-  unsigned char *b; /* Pointer to data. */
-} MBUF;
+typedef struct { void *dummy; } MBUF;
+
+
+/*
+ * Create an mbuf.
+ */
+MBUF *mbuf_new(void);
 
 
 /*
@@ -55,18 +61,10 @@ unsigned long mbuf_set(MBUF *b, unsigned long pos);
 
 
 /*
- * Get the remaining size of the buffer (from the current position to
- * the end).
+ * Returns nonzero if the buffer contains at least n bytes from the
+ * current position to the end.
  */
-unsigned long mbuf_rem(MBUF *b);
-
-
-/*
- * Get the address of the byte at the current position.
- * This allows to directly manipulate buffer. It should be used with
- * care, especially when writing data.
- */
-void *mbuf_adr(MBUF *b);
+int mbuf_request(MBUF *b, unsigned long n);
 
 
 /*

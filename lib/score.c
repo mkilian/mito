@@ -1,9 +1,13 @@
 /*
- * $Id: score.c,v 1.6 1996/05/20 17:46:07 kilian Exp $
+ * $Id: score.c,v 1.7 1996/05/21 11:48:00 kilian Exp $
  *
  * Reading and writing of complete scores.
  *
  * $Log: score.c,v $
+ * Revision 1.7  1996/05/21 11:48:00  kilian
+ * The buffer structure has been hidden. This may allow reading and writing
+ * files directly in future versions.
+ *
  * Revision 1.6  1996/05/20 17:46:07  kilian
  * Changes due to new track structure/functions.
  *
@@ -74,13 +78,13 @@ int score_add(Score *s)
 }
 
 
-
-
 /*
- * Read an event list from the buffer into the track `t'.
+ * Read an event list from the next `size' bytes of the buffer into the
+ * track `t'.
  */
-static int read_events(MBUF *b, Track *t)
+static int read_events(MBUF *b, unsigned long size, Track *t)
 {
+  unsigned long p = mbuf_pos(b);
   long time = 0;
   char running = 0;
   MFEvent e;
@@ -88,11 +92,15 @@ static int read_events(MBUF *b, Track *t)
   e.time = 0;
   e.msg.empty.type = EMPTY;
 
-  while(mbuf_rem(b) > 0 && read_event(b, &e, &running) &&
+  while(size > 0 && mbuf_request(b, 1) && read_event(b, &e, &running) &&
         e.msg.endoftrack.type != ENDOFTRACK)
     {
       time += e.time;
       e.time = time;
+
+      size += p;
+      p = mbuf_pos(b);
+      size -= p;
 
       if(!track_insert(t, &e))
         return 0;
@@ -105,12 +113,15 @@ static int read_events(MBUF *b, Track *t)
       e.msg.endoftrack.type = ENDOFTRACK;
     }
   else
-    e.time += time;
+    {
+      e.time += time;
+      size -= mbuf_pos(b) - p;
+    }
 
   if(!track_insert(t, &e))
     return 0;
 
-  if(mbuf_rem(b) > 0)
+  if(size > 0)
     midiprint(MPWarn, "ignoring events after `End Of Track'");
 
   return 1;
@@ -137,8 +148,8 @@ static long read_header(MBUF *b, Score *s)
   pos = mbuf_pos(b);
 
   /* Search the first chunk. */
-  if(mbuf_rem(b) > 0)
-    skip = search_chunk(b, &chunk, 0);
+  if(mbuf_request(b, 1))
+    skip = search_chunk(b, &chunk);
   else
     skip = -1;
 
@@ -160,8 +171,8 @@ static long read_header(MBUF *b, Score *s)
       pos = mbuf_pos(b);
 
       /* We need the second chunk, too. */
-      if(mbuf_rem(b) > 0)
-        skip = search_chunk(b, &chunk, 0);
+      if(mbuf_request(b, 1))
+        skip = search_chunk(b, &chunk);
       else
         skip = -1;
 
@@ -201,8 +212,8 @@ static long read_track(MBUF *b)
 
   pos = mbuf_pos(b);
 
-  if(mbuf_rem(b) > 0)
-    skip = search_chunk(b, &chunk, 0);
+  if(mbuf_request(b, 1))
+    skip = search_chunk(b, &chunk);
   else
     skip = -1;
 
@@ -251,12 +262,6 @@ Score *score_read(MBUF *b)
 
   while(size >= 0)
     {
-      MBUF t;
-
-      t.b = b->b + b->i;
-      t.i = 0;
-      t.n = size;
-
       /* May be that this should be an error. */
       if(!size)
         midiprint(MPWarn, "empty track");
@@ -267,13 +272,11 @@ Score *score_read(MBUF *b)
           return NULL;
         }
 
-      if(!(read_events(&t, s->tracks[s->ntrk - 1])))
+      if(!(read_events(b, size, s->tracks[s->ntrk - 1])))
         {
           score_clear(s);
           return NULL;
         }
-
-      b->i += t.i;
 
       size = read_track(b);
     }

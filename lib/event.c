@@ -1,9 +1,13 @@
 /*
- * $Id: event.c,v 1.8 1996/05/20 17:44:49 kilian Exp $
+ * $Id: event.c,v 1.9 1996/05/21 11:48:00 kilian Exp $
  *
  * Read midi file messages and events.
  *
  * $Log: event.c,v $
+ * Revision 1.9  1996/05/21 11:48:00  kilian
+ * The buffer structure has been hidden. This may allow reading and writing
+ * files directly in future versions.
+ *
  * Revision 1.8  1996/05/20 17:44:49  kilian
  * Added PortNumber meta message.
  *
@@ -190,7 +194,7 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs)
   long i = mbuf_pos(b);
   unsigned char b1, b2;
 
-  if(mbuf_rem(b) <= 0)
+  if(!mbuf_request(b, 1))
     {
       midiprint(MPError, "reading message: end of input");
       return 0;
@@ -218,7 +222,7 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs)
       case NOTEOFF:
       case KEYPRESSURE:
       case CONTROLCHANGE:
-        if(mbuf_rem(b) < 2)
+        if(!mbuf_request(b, 2))
           {
             midiprint(MPError, "reading message: end of input");
             mbuf_set(b, i);
@@ -245,7 +249,7 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs)
       /* One-byte messages. */
       case PROGRAMCHANGE:
       case CHANNELPRESSURE:
-        if(mbuf_rem(b) < 1)
+        if(!mbuf_request(b, 1))
           {
             midiprint(MPError, "reading message: end of input");
             mbuf_set(b, i);
@@ -264,7 +268,7 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs)
 
       /* This is special since it contains a 2x7bit quantity: */
       case PITCHWHEELCHANGE:
-        if(mbuf_rem(b) < 2)
+        if(!mbuf_request(b, 2))
           {
             midiprint(MPError, "reading message: end of input");
             mbuf_set(b, i);
@@ -308,7 +312,7 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs)
          * Get the type. There must be at least two bytes; one for the
          * type and one for the size.
          */
-        if(mbuf_rem(b) < 2)
+        if(!mbuf_request(b, 2))
           {
             midiprint(MPError, "reading message: end of input");
             mbuf_set(b, i);

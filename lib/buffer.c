@@ -1,9 +1,13 @@
 /*
- * $Id: buffer.c,v 1.2 1996/04/03 14:25:51 kilian Exp $
+ * $Id: buffer.c,v 1.3 1996/05/21 11:48:00 kilian Exp $
  *
  * In-memory buffer.
  *
  * $Log: buffer.c,v $
+ * Revision 1.3  1996/05/21 11:48:00  kilian
+ * The buffer structure has been hidden. This may allow reading and writing
+ * files directly in future versions.
+ *
  * Revision 1.2  1996/04/03 14:25:51  kilian
  * Fixed mbuf_pos. Now it is possible to set the pos to the very end.
  *
@@ -20,12 +24,41 @@
 
 #include "buffer.h"
 
+
+/*
+ * Buffer structure containing the midifile.
+ */
+typedef struct {
+  unsigned long n;  /* Size of buffer. */
+  unsigned long i;  /* Current position within buffer. */
+  unsigned char *b; /* Pointer to data. */
+} _MBUF;
+
+
+/*
+ * Create an mbuf.
+ */
+MBUF *mbuf_new(void)
+{
+  _MBUF *b;
+
+  if(!(b = malloc(sizeof(*b))))
+    return NULL;
+
+  b->n = b->i = 0;
+  b->b = NULL;
+
+  return (MBUF*)b;
+}
+
+
 /*
  * Read the file into the buffer.
  * Returns 0 on success, else -1.
  */
-int read_mbuf(MBUF *b, FILE *f)
+int read_mbuf(MBUF *_b, FILE *f)
 {
+  _MBUF *b = (_MBUF*)_b;
   char buf[1024];
   long size = 0;
   b->i = b->n = 0;
@@ -56,8 +89,9 @@ int read_mbuf(MBUF *b, FILE *f)
  * Write the buffer to the file.
  * Returns -1 on error and 0 on success.
  */
-int write_mbuf(MBUF *b, FILE *f)
+int write_mbuf(MBUF *_b, FILE *f)
 {
+  _MBUF *b = (_MBUF*)_b;
   if(b->n > 0 && fwrite(b->b, b->n, 1, f) != 1)
     return -1;
   else
@@ -68,8 +102,9 @@ int write_mbuf(MBUF *b, FILE *f)
 /*
  * Get the current position of a buffer.
  */
-unsigned long mbuf_pos(MBUF *b)
+unsigned long mbuf_pos(MBUF *_b)
 {
+  _MBUF *b = (_MBUF*)_b;
   return b->i;
 }
 
@@ -80,8 +115,10 @@ unsigned long mbuf_pos(MBUF *b)
  * Returns the new position which may be different from `pos' if `pos'
  * is out of range.
  */
-unsigned long mbuf_set(MBUF *b, unsigned long pos)
+unsigned long mbuf_set(MBUF *_b, unsigned long pos)
 {
+  _MBUF *b = (_MBUF*)_b;
+
   if(pos < 0)
     pos = b->n + pos;
 
@@ -95,26 +132,17 @@ unsigned long mbuf_set(MBUF *b, unsigned long pos)
 
 
 /*
- * Get the remaining size of the buffer (from the current position to
- * the end).
+ * Returns nonzero if the buffer contains at least n bytes from the
+ * current position to the end.
  */
-unsigned long mbuf_rem(MBUF *b)
+int mbuf_request(MBUF *_b, unsigned long n)
 {
+  _MBUF *b = (_MBUF*)_b;
+
   if(b->i < b->n)
-    return b->n - b->i;
+    return b->n - b->i >= n;
   else
-    return 0;
-}
-
-
-/*
- * Get the address of the byte at the current position.
- * This allows to directly manipulate buffer. It should be used with
- * care, especially when writing data.
- */
-void *mbuf_adr(MBUF *b)
-{
-  return b->b + b->i;
+    return 0 >= n;
 }
 
 
@@ -123,8 +151,10 @@ void *mbuf_adr(MBUF *b)
  * the position.
  * Returns the character or EOF if the end of the buffer is reached.
  */
-int mbuf_get(MBUF *b)
+int mbuf_get(MBUF *_b)
 {
+  _MBUF *b = (_MBUF*)_b;
+
   if(b->i >= b->n)
     return EOF;
   else
@@ -138,8 +168,10 @@ int mbuf_get(MBUF *b)
  * buffer is automatically enlarged.
  * Returns the stored character or EOF on errors.
  */
-int mbuf_put(MBUF *b, int ch)
+int mbuf_put(MBUF *_b, int ch)
 {
+  _MBUF *b = (_MBUF*)_b;
+
   ch &= 0xff;
 
   if(b->i >= b->n && !(b->b = realloc(b->b, ++b->n)))
@@ -152,9 +184,16 @@ int mbuf_put(MBUF *b, int ch)
 /*
  * Free the data of `b'.
  */
-void mbuf_free(MBUF *b)
+void mbuf_free(MBUF *_b)
 {
-  free(b->b);
+  _MBUF *b = (_MBUF*)_b;
+
+  if(b)
+    {
+      free(b->b);
+      b->b = NULL;
+      free(b);
+    }
 }
 
 
@@ -163,8 +202,11 @@ void mbuf_free(MBUF *b)
  * Returns 0 on success, else -1. In the latter case, `b1' may be
  * invalid.
  */
-int mbuf_insert(MBUF *b1, MBUF *b2)
+int mbuf_insert(MBUF *_b1, MBUF *_b2)
 {
+  _MBUF *b1 = (_MBUF*)_b1;
+  _MBUF *b2 = (_MBUF*)_b2;
+
   if(!b2->n)  /* b2 empty */
     return 0;
 

@@ -1,9 +1,13 @@
 /*
- * $Id: chunk.h,v 1.2 1996/04/03 14:23:54 kilian Exp $
+ * $Id: chunk.h,v 1.3 1996/05/21 11:48:00 kilian Exp $
  *
  * Get header and track chunks of standard midi files.
  *
  * $Log: chunk.h,v $
+ * Revision 1.3  1996/05/21 11:48:00  kilian
+ * The buffer structure has been hidden. This may allow reading and writing
+ * files directly in future versions.
+ *
  * Revision 1.2  1996/04/03 14:23:54  kilian
  * Added write_MThd and write_MTrk.
  *
@@ -63,8 +67,7 @@ typedef struct {
  *     number is accepted.
  *   - The division must not be zero.
  *
- * For track chunks, the size must not be negative and not greater than
- * `mtl', if this argument is positive.
+ * For track chunks, the size must not be negative.
  *
  * Only if the above conditions are met, the function returns success.
  * Corrupted headers and tracks are skipped after issuing a warning
@@ -73,7 +76,7 @@ typedef struct {
  * The functions returns -1 if no valid chunk is found, otherwise the
  * number of bytes skipped before the chunk (normally 0).
  */
-long search_chunk(MBUF *b, CHUNK *chunk, unsigned long mtl);
+long search_chunk(MBUF *b, CHUNK *chunk);
 
 
 /*
