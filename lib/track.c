@@ -1,10 +1,21 @@
 /*
- * $Id: track.c,v 1.2 1996/04/07 16:46:20 kilian Exp $
+ * $Id: track.c,v 1.3 1996/04/07 22:30:18 kilian Exp $
  *
  * Managing tracks, i.e. sequences of events.
  *
  * $Log: track.c,v $
- * Revision 1.2  1996/04/07 16:46:20  kilian
+ * Revision 1.3  1996/04/07 22:30:18  kilian
+ * Added consistency check.
+ * More assertions.
+ * Hopefully fixed track_release.
+ * User-controllable debugging level.
+ *
+ * Revision 1.3  1996/04/07  19:43:47  kilian
+ * Added consistency check.
+ * More assertions.
+ * Hopefully fixed track_release.
+ *
+ * Revision 1.2  1996/04/07  16:46:20  kilian
  * Implemented track_compress.
  * Changed return value of track_compress to int.
  * Some minor changes.
@@ -20,6 +31,15 @@
 #include <assert.h>
 
 #include "track.h"
+
+
+/*
+ * Debugging control.
+ * This defaults to 0.
+ */
+int track_debug = 0;
+
+#define TD track_debug
 
 
 /*
@@ -265,8 +285,61 @@ void track_clear(Track *t)
       clear_message(&t->events[t->current++].msg);
     }
 
-  if(t->events) free(t->events);
+  if(t->events)
+    {
+      free(t->events);
+      t->events = NULL;
+      t->nevents = t->total = t->empty = t->descs = 0;
+    }
   free(t);
+}
+
+
+/*
+ * This performs a consistency check on a track.
+ * If the check fails, the program is aborted.
+ */
+static void track_check(Track *t)
+{
+#ifndef NDEBUG
+  Track *s;
+  unsigned long c, descs, empty, total;
+  long lasttime;
+
+  if(!(TD & TRACK_CHECK))
+    return;
+
+  /* Only the root track may be totally empty. */
+  assert(t->events || !t->nevents && !t->parent);
+  assert(t->nevents <= t->total);
+  assert(t->total >= t->descs + t->empty);
+
+  for(c = descs = empty = total = lasttime = 0; c < t->nevents; c++, total++)
+    {
+      MFEvent *e = &t->events[c];
+      assert(e->time >= lasttime);
+      lasttime = e->time;
+      if(e->msg.empty.type == EMPTY)
+        empty++;
+      else if((s = get_link(e)))
+        {
+          track_check(s);
+          assert(s->parent == t);
+          assert(s->link == c);
+          total += s->total;
+          empty += s->empty;
+          descs += 1 + s->descs;
+        }
+
+      assert(total <= t->total);
+      assert(empty <= t->empty);
+      assert(descs <= t->descs);
+    }
+
+  assert(total == t->total);
+  assert(empty == t->empty);
+  assert(descs == t->descs);
+#endif /* NDEBUG */
 }
 
 
@@ -283,11 +356,17 @@ int track_compress(Track *t)
   unsigned long dest, source;
   unsigned long newsize;
 
+  if(t)
+    track_check(t);
+
   if(!t || !t->descs && !t->empty)
     return 1;
 
-  fprintf(stderr, "Compress: %ld ev, %ld total, %ld descs, %ld empty...",
-          t->nevents, t->total, t->descs, t->empty);
+#ifndef NDEBUG
+  if(TD & TRACK_ACV)
+    fprintf(stderr, "Compress: %ld ev, %ld total, %ld descs, %ld empty...",
+            t->nevents, t->total, t->descs, t->empty);
+#endif /* NDEBUG */
 
   /*
    * First, we have to reallocate the new size, but only if the new size
@@ -300,12 +379,20 @@ int track_compress(Track *t)
   if(newsize > t->nevents)
     if(!(es = realloc(t->events, newsize * sizeof(*es))))
       {
-        perror(" aborted");
-        fflush(stderr);
+#ifndef NDEBUG
+        if(TD & TRACK_ACV)
+          {
+            perror(" aborted");
+            fflush(stderr);
+          }
+#endif /* NDEBUG */
+        track_check(t);
         return 0;
       }
     else
       t->events = es;
+
+  assert(t->events != NULL);
 
   /* Remove leading empty events by moving events down.  */
   source = dest = 0;
@@ -319,7 +406,13 @@ int track_compress(Track *t)
         dest += s->total - s->descs - s->empty;
       }
     else if(source > dest)
-      t->events[dest++] = t->events[source++];
+      {
+        /* We have to keep track of the current position. */
+        if(t->current == source)
+          t->current = dest;
+
+        t->events[dest++] = t->events[source++];
+      }
     else
       source++, dest++;
 
@@ -334,6 +427,20 @@ int track_compress(Track *t)
       source--;
     else if((s = get_link(&t->events[source])))
       {
+        MFEvent *ec = NULL;
+        Track *tc = s;
+
+        /*
+         * If the current position is at this link, we have to get the
+         * corresponding event to update the current position later.
+         */
+        while(!_track_eot(tc) &&
+              ((tc = get_link((ec = &tc->events[tc->current])))))
+          /* skip */;
+
+        if(tc && _track_eot(tc))
+          ec = NULL;
+
         /*
          * Copy events from s to dest, starting at the end.
          * The parent's field is cleared to avoid garbling the current
@@ -343,6 +450,10 @@ int track_compress(Track *t)
         track_rewind(s);
         while((e = track_step(s, 1)))
           {
+            /* Update the current position, if necessary. */
+            if(e == ec)
+              t->current = dest;
+
             t->events[dest--] = *e;
             /* Overwrite it with something uncritical. */
             e->msg.endoftrack.type = ENDOFTRACK;
@@ -363,7 +474,13 @@ int track_compress(Track *t)
           source--;
       }
     else if(source < dest)
-      t->events[dest--] = t->events[source--];
+      {
+        /* We have to keep track of the current position. */
+        if(t->current == source)
+          t->current = dest;
+
+        t->events[dest--] = t->events[source--];
+      }
     else
       source--, dest--;
 
@@ -394,8 +511,15 @@ int track_compress(Track *t)
   /* ... but we do an assertion anyways. */
   assert(t->events != NULL);
 
-  fprintf(stderr, " done.\n");
-  fflush(stderr);
+#ifndef NDEBUG
+  if(TD & TRACK_ACV)
+    {
+      fprintf(stderr, " done.\n");
+      fflush(stderr);
+    }
+#endif /* NDEBUG */
+  track_check(t);
+
   return 1;
 }
 
@@ -451,6 +575,8 @@ static int track_release(Track *t)
       p->empty -= t->empty;
       p->descs--;
       free(t->events);
+      t->events = NULL;
+      t->nevents = t->total = t->empty = t->descs = 0;
 
       track_release(p);
       return 1;
@@ -472,7 +598,12 @@ static int track_release(Track *t)
       track_release(p);
 
       /* And free this structure. */
-      if(t->events) free(t->events);
+      if(t->events)
+        {
+          free(t->events);
+          t->events = NULL;
+          t->nevents = t->total = t->empty = t->descs = 0;
+        }
       free(t);
 
       return 1;
@@ -481,7 +612,8 @@ static int track_release(Track *t)
     {
       /* We are the root track */
       free(t->events);
-      t->total = t->empty = t->descs = 0;
+      t->events = NULL;
+      t->nevents = t->total = t->empty = t->descs = 0;
 
       return 1;
     }
@@ -511,8 +643,10 @@ static int track_release(Track *t)
  * root's `events' field will be freed, but not the root structure
  * itself.
  */
-int track_delete(Track *t)
+static int _track_delete(Track *t)
 {
+  Track *s;
+
   if(!t || _track_eot(t))
     return 0;
 
@@ -520,21 +654,34 @@ int track_delete(Track *t)
   assert(t->events[t->current].msg.empty.type != EMPTY);
 
   /* First try to delete the event of a possible subtrack. */
-  if(track_delete(get_link(&t->events[t->current])))
+  if(_track_delete(get_link(&t->events[t->current])))
     return 1;
 
   /* Ok, no subtrack, so directly delete it. */
   clear_message(&t->events[t->current].msg);
   t->events[t->current].msg.empty.type = EMPTY;
-
   t->empty++;
 
-  if(track_release(t))
-    return 1;
+  /* Propagate the new number of empty events to the anchestors. */
+  s = t;
+  while((s = s->parent))
+    s->empty++;
+
+  /* Go to the next position. */
+  track_step(t, 0);
+
+  track_release(t);
+
+  return 1;
+}
+
+int track_delete(Track *t)
+{
+  if(!_track_delete(t))
+    return 0;
 
   /* Check for auto-cleanup. */
   _track_comp(t);
-
   return 1;
 }
 
