@@ -1,10 +1,14 @@
 /*
- * $Id: mito.c,v 1.4 1996/04/03 14:27:56 kilian Exp $
+ * $Id: mito.c,v 1.5 1996/04/04 16:26:34 kilian Exp $
  *
  * mito --- the midi tool
  *
  * $Log: mito.c,v $
- * Revision 1.4  1996/04/03 14:27:56  kilian
+ * Revision 1.5  1996/04/04 16:26:34  kilian
+ * Improved output of text messages.
+ * Fixed concatenating of tracks.
+ *
+ * Revision 1.4  1996/04/03  14:27:56  kilian
  * Implemented merging of tracks and writing of midifiles.
  * Improved printing of events.
  *
@@ -141,14 +145,26 @@ static char *strdat(void *vld)
   const unsigned char *data = vld_data(vld);
   int i;
 
-  for(i = 0; length > 0 && i < 61; i++, length--)
-    if(*data < ' ' || *data > 0x7f)
+  for(i = 0; length > 0 && i < 65 - 4; i++, length--, data++)
+    switch(*data)
       {
-        sprintf(buf + i, "\\%03hu", *data++);
-        i += 3;
+        case '\\':  buf[i++] = '\\'; buf[i] = '\\'; break;
+        case '\a':  buf[i++] = '\\'; buf[i] = 'a'; break;
+        case '\b':  buf[i++] = '\\'; buf[i] = 'b'; break;
+        case '\f':  buf[i++] = '\\'; buf[i] = 'f'; break;
+        case '\n':  buf[i++] = '\\'; buf[i] = 'n'; break;
+        case '\r':  buf[i++] = '\\'; buf[i] = 'r'; break;
+        case '\t':  buf[i++] = '\\'; buf[i] = 't'; break;
+        case '\v':  buf[i++] = '\\'; buf[i] = 'b'; break;
+        default:
+          if(*data < ' ')
+            {
+              sprintf(buf + i, "\\%03hu", *data);
+              i += 3;
+            }
+          else
+            buf[i] = *data;
       }
-    else
-      buf[i] = *data++;
 
   if(length > 0)
     strcpy(buf + i, "...");
@@ -460,9 +476,9 @@ static void mergetracks(Score *s)
  */
 static int write_tracks(MBUF *b, Score *s, int concat)
 {
-  long phdr, ptrk;
+  long phdr = 0, ptrk = 0;
   MFEvent *es;
-  long t, e;
+  long t, e, n;
   unsigned char running;
 
   if(s->ntrk < 1)
@@ -484,7 +500,11 @@ static int write_tracks(MBUF *b, Score *s, int concat)
           running = 0;
         }
 
-      for(e = 0; e < s->tracks[t]; e++)
+      n = s->tracks[t];
+      if(concat && t < s->ntrk - 1)
+        n--;
+
+      for(e = 0; e < n; e++)
         if(!write_event(b, es + e, &running))
           {
             if(errno)
@@ -774,6 +794,11 @@ int main(int argc, char *argv[])
     }
   else if(outb && !(flags & NOHEADER) &&
           !write_MThd(outb, outformat, outntrk, outdiv))
+    {
+      perror(outname);
+      return EXIT_FAILURE;
+    }
+  else if(outb && (flags & CONCATTRACKS) && !write_MTrk(outb, mbuf_rem(outb)))
     {
       perror(outname);
       return EXIT_FAILURE;
