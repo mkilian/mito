@@ -1,10 +1,13 @@
 /*
- * $Id: buffer.c,v 1.1 1996/04/01 19:11:06 kilian Exp $
+ * $Id: buffer.c,v 1.2 1996/04/03 14:25:51 kilian Exp $
  *
  * In-memory buffer.
  *
  * $Log: buffer.c,v $
- * Revision 1.1  1996/04/01 19:11:06  kilian
+ * Revision 1.2  1996/04/03 14:25:51  kilian
+ * Fixed mbuf_pos. Now it is possible to set the pos to the very end.
+ *
+ * Revision 1.1  1996/04/01  19:11:06  kilian
  * Initial revision
  *
  */
@@ -84,7 +87,7 @@ unsigned long mbuf_set(MBUF *b, unsigned long pos)
 
   if(pos < 0)
     b->i = 0;
-  else if(pos < b->n)
+  else if(pos <= b->n)
     b->i = pos;
 
   return b->i;
