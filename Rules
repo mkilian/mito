@@ -1,5 +1,5 @@
 ########################################################################
-# $Id: Rules,v 1.5 1996/04/02 10:23:46 kilian Exp $
+# $Id: Rules,v 1.6 1996/05/20 14:03:55 kilian Exp $
 #
 # Make variables and rules common for all subdirectories.
 # This file should be included by all makefiles, e.g. by a line
@@ -8,6 +8,9 @@
 # for it's own directory.
 #
 # $Log: Rules,v $
+# Revision 1.6  1996/05/20 14:03:55  kilian
+# Added `gmon.out' and `gmon.sum' to the list of files deleted in target `clean'.
+#
 # Revision 1.5  1996/04/02 10:23:46  kilian
 # Added `REFS' and `refs' to the list of files deleted in target `realclean'.
 #
@@ -149,7 +152,7 @@ install::
 # Cleaning up.
 .PHONY: clean
 clean::
-	$(RM) *.o core errlist
+	$(RM) *.o core errlist gmon.out gmon.sum
 
 # Cleaning up unmodified source files.
 .PHONY: rcsclean
