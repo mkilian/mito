@@ -1,9 +1,13 @@
 /*
- * $Id: util.h,v 1.1 1996/05/20 04:29:46 kilian Exp $
+ * $Id: util.h,v 1.2 1996/05/20 22:10:11 kilian Exp $
  *
  * Utility functions for midilib.
  *
  * $Log: util.h,v $
+ * Revision 1.2  1996/05/20 22:10:11  kilian
+ * Added compressNoteOff.
+ * Fixed and improved pairNotes (now uses alloca to store NoteOns).
+ *
  * Revision 1.1  1996/05/20 04:29:46  kilian
  * Initial revision
  *
@@ -42,5 +46,14 @@ int pairNotes(Track *t);
  * Returns the number of converted events.
  */
 int unpairNotes(Track *t);
+
+
+/*
+ * If `force' is nonzero, unconditionally replace all NoteOff events by
+ * NoteOn events with velocity zero.
+ * If `force' is zero, the replacement takes place if all NoteOff events
+ * have the same velocity.
+ */
+void compressNoteOff(Track *t, int force);
 
 #endif /* __UTIL_H__ */
