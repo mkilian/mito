@@ -1,9 +1,12 @@
 /*
- * $Id: mito.c,v 1.14 1996/05/21 11:48:00 kilian Exp $
+ * $Id: mito.c,v 1.15 2000/01/13 22:13:48 kili Exp $
  *
  * mito --- the midi tool
  *
  * $Log: mito.c,v $
+ * Revision 1.15  2000/01/13 22:13:48  kili
+ * Fixed missing initialization.
+ *
  * Revision 1.14  1996/05/21 11:48:00  kilian
  * The buffer structure has been hidden. This may allow reading and writing
  * files directly in future versions.
@@ -706,7 +709,7 @@ static void printstat(void)
 
 int main(int argc, char *argv[])
 {
-  unsigned long p;
+  unsigned long p = 0;
   int opt;
   int error = 0;
   int flags = 0;

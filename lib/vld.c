@@ -1,9 +1,12 @@
 /*
- * $Id: vld.c,v 1.5 1996/05/21 11:48:00 kilian Exp $
+ * $Id: vld.c,v 1.6 2000/01/13 22:14:00 kili Exp $
  *
  * Read variable sized quantities and data.
  *
  * $Log: vld.c,v $
+ * Revision 1.6  2000/01/13 22:14:00  kili
+ * Fixed missing initialization.
+ *
  * Revision 1.5  1996/05/21 11:48:00  kilian
  * The buffer structure has been hidden. This may allow reading and writing
  * files directly in future versions.
@@ -44,9 +47,9 @@ long read_vlq(MBUF *b)
   long vlq = 0;
   unsigned long p = mbuf_pos(b);
   int n = 0;
-  unsigned char c;
+  unsigned char c = 0;
 
-  while(mbuf_request(b,1) && n++ < 4 && (c = mbuf_get(b)) & 0x80)
+  while(mbuf_request(b, 1) && n++ < 4 && (c = mbuf_get(b)) & 0x80)
   	vlq = vlq << 7 | c & 0x7f;
 
   if(n < 1)
