@@ -1,15 +1,22 @@
 /*
- * $Id: track.c,v 1.1 1996/04/06 23:01:42 kilian Exp $
+ * $Id: track.c,v 1.2 1996/04/07 16:46:20 kilian Exp $
  *
  * Managing tracks, i.e. sequences of events.
  *
  * $Log: track.c,v $
- * Revision 1.1  1996/04/06 23:01:42  kilian
+ * Revision 1.2  1996/04/07 16:46:20  kilian
+ * Implemented track_compress.
+ * Changed return value of track_compress to int.
+ * Some minor changes.
+ *
+ * Revision 1.1  1996/04/06  23:01:42  kilian
  * Initial revision
  *
  */
 
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 
 #include "track.h"
@@ -20,6 +27,9 @@
  * `maxdesc' is the maximum number of descendants before auto-cleanup.
  * `maxempty' is the maximum number of deleted events before auto-cleanup.
  * Setting one of these parameters to zero disables this feature.
+ * The values are interpreted as 1/10000 of the total number of events,
+ * i.e. to cleanup if 10 percent of all events are empty, set `maxempty'
+ * to 1000.
  * The function returns a pointer to the new (empty) track or NULL on
  * errors.
  */
@@ -37,7 +47,7 @@ Track *track_new(unsigned long maxdesc, unsigned long maxempty)
   t->descs = 0;
   t->empty = 0;
   t->total = 0;
-  t->maxdesc = maxdesc;
+  t->maxdescs = maxdesc;
   t->maxempty = maxempty;
   t->current = 0;
   return t;
@@ -67,7 +77,7 @@ int track_eot(Track *t)
  * Increase or, if `rew' is true, decrease
  * the position of the track, ignoring subtracks or empty events. If the
  * current position is EOT, the position will be set to the first resp.
- * last event. If the new position is EOT, return true else false.
+ * last event. If the new position is EOT, return false else true.
  */
 static int track_inc(Track *t, int rew)
 {
@@ -88,7 +98,7 @@ static int track_inc(Track *t, int rew)
         t->current++;
     }
 
-  return _track_eot(t);
+  return !_track_eot(t);
 }
 
 
@@ -124,7 +134,7 @@ static MFEvent *track_notempty(Track *t, int rew)
   if(!t)
     return NULL;
 
-  while(!track_inc(t, rew) &&
+  while(track_inc(t, rew) &&
         t->events[t->current].msg.empty.type == EMPTY)
     /* skip */;
 
@@ -262,10 +272,144 @@ void track_clear(Track *t)
 
 /*
  * Compress a track, i.e. flatten all links and remove all empty events.
+ * If the compression fails for some reason, this function returns 0,
+ * else 1. Regardless of the return value, the track can be expected to
+ * be consistent in all cases.
  */
-void track_compress(Track *t)
+int track_compress(Track *t)
 {
-  /* Not yet implemented */
+  Track *s;
+  MFEvent *e, *es;
+  unsigned long dest, source;
+  unsigned long newsize;
+
+  if(!t || !t->descs && !t->empty)
+    return 1;
+
+  fprintf(stderr, "Compress: %ld ev, %ld total, %ld descs, %ld empty...",
+          t->nevents, t->total, t->descs, t->empty);
+
+  /*
+   * First, we have to reallocate the new size, but only if the new size
+   * is larger than the current. Otherwise, we do the realloc after the
+   * flattening.
+   * If reallocation fails, no flattening will be done.
+   */
+  newsize = t->total - t->descs - t->empty;
+  es = NULL;
+  if(newsize > t->nevents)
+    if(!(es = realloc(t->events, newsize * sizeof(*es))))
+      {
+        perror(" aborted");
+        fflush(stderr);
+        return 0;
+      }
+    else
+      t->events = es;
+
+  /* Remove leading empty events by moving events down.  */
+  source = dest = 0;
+  while(dest <= source && source < t->nevents)
+    if(t->events[source].msg.empty.type == EMPTY)
+      source++;
+    else if((s = get_link(&t->events[source])))
+      {
+        /* Leave links yet untouched. */
+        source++;
+        dest += s->total - s->descs - s->empty;
+      }
+    else if(source > dest)
+      t->events[dest++] = t->events[source++];
+    else
+      source++, dest++;
+
+  /*
+   * Traverse from the end of the event list, removing empty events by
+   * moving events up and flatten all found links.
+   */
+  source = t->nevents - 1;
+  dest = newsize - 1;
+  while(source + 1 > 0 && dest + 1 > 0)
+    if(t->events[source].msg.empty.type == EMPTY)
+      source--;
+    else if((s = get_link(&t->events[source])))
+      {
+        /*
+         * Copy events from s to dest, starting at the end.
+         * The parent's field is cleared to avoid garbling the current
+         * track's fields and infinite loops.
+         */
+        s->parent = NULL;
+        track_rewind(s);
+        while((e = track_step(s, 1)))
+          {
+            t->events[dest--] = *e;
+            /* Overwrite it with something uncritical. */
+            e->msg.endoftrack.type = ENDOFTRACK;
+          }
+
+        /* Now delete the subtrack. */
+        track_clear(s);
+
+        /*
+         * Update the source position. In rare cases where there were
+         * empty events in front of the link and the subtrack contained
+         * more real events than there was space between source and
+         * dest, source may point into the newly copied events.
+         */
+        if(source > dest)
+          source = dest;
+        else
+          source--;
+      }
+    else if(source < dest)
+      t->events[dest--] = t->events[source--];
+    else
+      source--, dest--;
+
+  /*
+   * Update counts and propagate them to the parents.
+   */
+  s = t;
+  while((s = s->parent))
+    {
+      s->total -= t->empty + t->descs;
+      s->empty -= t->empty;
+      s->descs -= t->descs;
+    }
+
+  t->total -= t->empty + t->descs;
+  t->nevents = t->total;
+  t->empty = t->descs = 0;
+
+  assert(t->nevents == newsize);
+
+  /*
+   * If we use less space than before, we now have to shrink the events
+   * array to it's new size. This should never fail...
+   */
+  if(!es)
+    t->events = realloc(t->events, newsize * sizeof(*t->events));
+
+  /* ... but we do an assertion anyways. */
+  assert(t->events != NULL);
+
+  fprintf(stderr, " done.\n");
+  fflush(stderr);
+  return 1;
+}
+
+
+/*
+ * This is a simple compression wrapper.
+ * It compresses the track if one of the limits is reached.
+ */
+static void _track_comp(Track *t)
+{
+  /* TODO: avoid overflow. */
+  if(t->maxdescs && t->descs * 10000 > t->total * t->maxdescs ||
+     t->maxempty && t->empty * 10000 > t->total * t->maxempty)
+    track_compress(t);
 }
 
 
@@ -387,9 +531,9 @@ int track_delete(Track *t)
 
   if(track_release(t))
     return 1;
-  else if(t->maxempty && t->empty > t->maxempty)
-    /* Empty event limit reached. */
-    track_compress(t);
+
+  /* Check for auto-cleanup. */
+  _track_comp(t);
 
   return 1;
 }
@@ -456,7 +600,7 @@ static MFEvent *track_newevent(Track *t)
     return track_enlarge(t, 1);
 
   /* Ok, now increase current position. */
-  if(track_inc(t, 0))
+  if(!track_inc(t, 0))
     return track_enlarge(t, 1);
 
   if(t->events[t->current].msg.empty.type == EMPTY)
@@ -475,7 +619,7 @@ static MFEvent *track_newevent(Track *t)
   track_inc(t, 1);
 
   /* Build a new subtrack... */
-  if(!(s = track_new(t->maxdesc, t->maxempty)))
+  if(!(s = track_new(t->maxdescs, t->maxempty)))
     return NULL;
 
   /*
@@ -539,6 +683,7 @@ int track_insert(Track *t, MFEvent *e)
         return 0;
 
       *enew = *e;
+      _track_comp(t);
       return 1;
     }
 
@@ -554,6 +699,7 @@ int track_insert(Track *t, MFEvent *e)
         return 0;
 
       *enew = *e;
+      _track_comp(t);
       return 1;
     }
 
@@ -569,5 +715,6 @@ int track_insert(Track *t, MFEvent *e)
 
   *enew = *efirst;
   *efirst = *e;
+  _track_comp(t);
   return 1;
 }
