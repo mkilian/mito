@@ -1,10 +1,13 @@
 /*
- * $Id: mito.c,v 1.9 1996/04/07 22:19:51 kilian Exp $
+ * $Id: mito.c,v 1.10 1996/04/30 14:21:32 kilian Exp $
  *
  * mito --- the midi tool
  *
  * $Log: mito.c,v $
- * Revision 1.9  1996/04/07 22:19:51  kilian
+ * Revision 1.10  1996/04/30 14:21:32  kilian
+ * Started to support note events with durations.
+ *
+ * Revision 1.9  1996/04/07  22:19:51  kilian
  * Added debugging options.
  *
  * Revision 1.8  1996/04/07  19:20:01  kilian
@@ -218,9 +221,15 @@ static void showtracks(Score *s, int flags)
                           e->msg.noteoff.velocity);
                 continue;
               case NOTEON:
-                midiprint(MPNote, "%8ld NoteOn %hd %hd %hd", e->time,
-                          e->msg.noteon.chn, e->msg.noteon.note,
-                          e->msg.noteon.velocity);
+              	if(e->msg.noteon.duration)
+                  midiprint(MPNote, "%8ld Note %hd %hd %hd %ld %hd", e->time,
+                            e->msg.noteon.chn, e->msg.noteon.note,
+                            e->msg.noteon.velocity,
+                            e->msg.noteon.duration, e->msg-noteon.release);
+              	else
+                  midiprint(MPNote, "%8ld NoteOn %hd %hd %hd", e->time,
+                            e->msg.noteon.chn, e->msg.noteon.note,
+                            e->msg.noteon.velocity);
                 continue;
               case KEYPRESSURE:
                 midiprint(MPNote, "%8ld KeyPressure %hd %hd %hd", e->time,

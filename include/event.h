@@ -1,10 +1,13 @@
 /*
- * $Id: event.h,v 1.3 1996/04/06 23:00:10 kilian Exp $
+ * $Id: event.h,v 1.4 1996/04/30 14:21:32 kilian Exp $
  *
  * Read midi file messages and events.
  *
  * $Log: event.h,v $
- * Revision 1.3  1996/04/06 23:00:10  kilian
+ * Revision 1.4  1996/04/30 14:21:32  kilian
+ * Started to support note events with durations.
+ *
+ * Revision 1.3  1996/04/06  23:00:10  kilian
  * Added new internal message types `link', `empty' and `warning'.
  *
  * Revision 1.2  1996/04/02  23:23:12  kilian
@@ -91,6 +94,14 @@ typedef struct {
 typedef struct {
   unsigned char chn:4, cmd:4;
   unsigned char note, velocity;
+
+  /*
+   * These are for a `Note' message that combines NoteOn and NoteOff.
+   * If duration is 0, it's a single NoteOn message.
+   * It's an error to try to write a `Note' message.
+   */
+  long duration;
+  unsigned char release;;
 } MFNoteOn;
 
 typedef struct {

@@ -1,10 +1,13 @@
 /*
- * $Id: event.c,v 1.6 1996/04/07 19:18:01 kilian Exp $
+ * $Id: event.c,v 1.7 1996/04/30 14:21:32 kilian Exp $
  *
  * Read midi file messages and events.
  *
  * $Log: event.c,v $
- * Revision 1.6  1996/04/07 19:18:01  kilian
+ * Revision 1.7  1996/04/30 14:21:32  kilian
+ * Started to support note events with durations.
+ *
+ * Revision 1.6  1996/04/07  19:18:01  kilian
  * On cleanup, set the command to `Empty'.
  *
  * Revision 1.5  1996/04/04  16:25:04  kilian
@@ -199,8 +202,10 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs)
   switch(msg->generic.cmd & 0xf0)
     {
       /* Two-byte messages. */
-      case NOTEOFF:
       case NOTEON:
+        msg->noteon.duration = 0;
+        msg->noteon.release = 0;
+      case NOTEOFF:
       case KEYPRESSURE:
       case CONTROLCHANGE:
         if(mbuf_rem(b) < 2)
@@ -329,6 +334,10 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs)
  * NULL, which switches running status off.
  * Returns 1 on success and 0 on errors.
  */
+/*
+ * Note that running status will not carry over system common or meta
+ * messages as in read_message.
+ */
 int write_message(MBUF *b, MFMessage *msg, unsigned char *rs)
 {
   unsigned char cmd = msg->generic.cmd;
@@ -336,6 +345,8 @@ int write_message(MBUF *b, MFMessage *msg, unsigned char *rs)
 
   if(cmd >= 0xf0)
     {
+      if(rs) *rs = 0;
+
       /* This is a system common message. */
       if(mbuf_put(b, cmd) == EOF)
         return 0;
@@ -366,8 +377,13 @@ int write_message(MBUF *b, MFMessage *msg, unsigned char *rs)
 
       switch(cmd & 0xf0)
         {
-          case NOTEOFF:
           case NOTEON:
+            if(msg->noteon.duration)
+              {
+                midiprint(MPFatal, "cannot write combined note messages");
+                return 0;
+              }
+          case NOTEOFF:
           case KEYPRESSURE:
           case CONTROLCHANGE:
             return mbuf_put(b, msg->noteoff.note) != EOF &&
@@ -383,6 +399,8 @@ int write_message(MBUF *b, MFMessage *msg, unsigned char *rs)
     }
   else
     {
+      if(rs) *rs = 0;
+
       /* This is a meta message. */
       if(mbuf_put(b, META) == EOF || mbuf_put(b, cmd) == EOF)
         return 0;
@@ -431,6 +449,8 @@ int write_message(MBUF *b, MFMessage *msg, unsigned char *rs)
             return write_vld(b, msg->sequencerspecific.data);
         }
     }
+
+  if(rs) *rs = 0;
 
   /* This should never happen! */
   midiprint(MPFatal, "writing message: unknown message type %hd", cmd);
