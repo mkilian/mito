@@ -1,9 +1,12 @@
 /*
- * $Id: track.c,v 1.4 1996/05/20 17:46:48 kilian Exp $
+ * $Id: track.c,v 1.5 1996/05/20 22:09:11 kilian Exp $
  *
  * Managing tracks, i.e. sequences of events.
  *
  * $Log: track.c,v $
+ * Revision 1.5  1996/05/20 22:09:11  kilian
+ * Sort voice events by channel number.
+ *
  * Revision 1.4  1996/05/20 17:46:48  kilian
  * Events are no longer stored in a tree but in a flat array.
  * Insertion will now be somewhat slower and tracks will use slightly more
@@ -153,6 +156,7 @@ static void start_insertion(Track *t)
  * For equal-timed events, the following partial order holds:
  *   Any event           < End of track
  *   Other meta event    < Voice event
+ *   Voice event ch=x    < Voice event ch=y, if x < y
  *   Program change      < Other voice event
  *   Control change      < Other voice event
  *   Note off            < Note on
@@ -187,6 +191,10 @@ static int _ecmp(const void *_e1, const void *_e2)
   else if(isMeta(e1) && isVoice(e2))
     return -1;
   else if(isMeta(e2) && isVoice(e1))
+    return 1;
+  else if(isVoice(e1) && isVoice(e2) && e1->msg.noteon.chn < e2->msg.noteon.chn)
+    return -1;
+  else if(isVoice(e1) && isVoice(e2) && e2->msg.noteon.chn < e1->msg.noteon.chn)
     return 1;
   else if(isProgram(e1) && !isProgram(e2))
     return -1;
