@@ -1,10 +1,14 @@
 /*
- * $Id: chunk.c,v 1.2 1996/04/02 10:19:57 kilian Exp $
+ * $Id: chunk.c,v 1.3 1996/04/02 23:26:30 kilian Exp $
  *
  * Get header and track chunks of standard midi files.
  *
  * $Log: chunk.c,v $
- * Revision 1.2  1996/04/02 10:19:57  kilian
+ * Revision 1.3  1996/04/02 23:26:30  kilian
+ * Restore buffer position if no chunk was found.
+ * Treat `This can't happen' as fatal error.
+ *
+ * Revision 1.2  1996/04/02  10:19:57  kilian
  * Adapted changes of the print functions.
  *
  * Revision 1.1  1996/04/01  19:11:06  kilian
@@ -160,7 +164,10 @@ long search_chunk(MBUF *b, CHUNK *chunk, unsigned long mtl)
     b->i++;
 
   if(b->i >= b->n)
-    return -1;
+    {
+      b->i = i;
+      return -1;
+    }
 
   if(chunk->type == MThd)
     return b->i - i - 14;
@@ -168,7 +175,8 @@ long search_chunk(MBUF *b, CHUNK *chunk, unsigned long mtl)
     return b->i - i - 8;
   else
     {
-      midiprint(MPError, "no type; this can't happen");
+      midiprint(MPFatal, "no type; this can't happen");
+      b->i = i;
       return -1;
     }
 }
