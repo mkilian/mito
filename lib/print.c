@@ -1,10 +1,13 @@
 /*
- * $Id: print.c,v 1.1 1996/04/01 20:20:21 kilian Exp $
+ * $Id: print.c,v 1.2 1996/04/02 10:19:11 kilian Exp $
  *
  * Message printing hooks.
  *
  * $Log: print.c,v $
- * Revision 1.1  1996/04/01 20:20:21  kilian
+ * Revision 1.2  1996/04/02 10:19:11  kilian
+ * Use only one printing function resp. hook together with a printlevel.
+ *
+ * Revision 1.1  1996/04/01  20:20:21  kilian
  * Initial revision
  *
  */
@@ -16,48 +19,23 @@
 
 /*
  * The function pointer `midiprint_hook', if not NULL, is used to write
- * strings to the output of the application. Similar, the pointers
- * `midiwarn_hook' and `midierror_hook' are used to notify about
- * warnings or errors. They all are called like the vprintf-style
- * functions.
+ * strings to the output of the application.
+ * It is called as vprintf-like functions, with an additional argument
+ * `level' which specifies the level of message (see above).
  */
-void (*midiprint_hook)(const char *fmt, va_list args) = NULL;
-void (*midiwarn_hook)(const char *fmt, va_list args) = NULL;
-void (*midierror_hook)(const char *fmt, va_list args) = NULL;
+void (*midiprint_hook)(MPLevel level, const char *fmt, va_list args) = NULL;
 
 
 /*
- * These call the corresponding hook if it is set.
+ * This calls the corresponding hook if it is set.
  */
-void midiprint(const char *fmt, ...)
+void midiprint(MPLevel level, const char *fmt, ...)
 {
   if(midiprint_hook)
     {
       va_list args;
       va_start(args, fmt);
-      midiprint_hook(fmt, args);
-      va_end(args);
-    }
-}
-
-void midiwarn(const char *fmt, ...)
-{
-  if(midiwarn_hook)
-    {
-      va_list args;
-      va_start(args, fmt);
-      midiwarn_hook(fmt, args);
-      va_end(args);
-    }
-}
-
-void midierror(const char *fmt, ...)
-{
-  if(midierror_hook)
-    {
-      va_list args;
-      va_start(args, fmt);
-      midierror_hook(fmt, args);
+      midiprint_hook(level, fmt, args);
       va_end(args);
     }
 }
