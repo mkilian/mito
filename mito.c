@@ -1,9 +1,12 @@
 /*
- * $Id: mito.c,v 1.15 2000/01/13 22:13:48 kili Exp $
+ * $Id: mito.c,v 1.16 2000/01/13 22:38:52 kili Exp $
  *
  * mito --- the midi tool
  *
  * $Log: mito.c,v $
+ * Revision 1.16  2000/01/13 22:38:52  kili
+ * Fixed some warnings.
+ *
  * Revision 1.15  2000/01/13 22:13:48  kili
  * Fixed missing initialization.
  *
@@ -612,7 +615,7 @@ static int dofile(const char *spec, int flags)
 
   scorenum = 0;
 
-  if(sc1 < 0 || sc0 <= scorenum && scorenum <= sc1)
+  if(sc1 < 0 || (sc0 <= scorenum && scorenum <= sc1))
     {
       if(tr1 >= 0)
         adjusttracks(s, tr0, tr1);
@@ -650,7 +653,7 @@ static int dofile(const char *spec, int flags)
 
   while(mbuf_request(b, 1) && (s = score_read(b)))
     {
-      if(sc1 < 0 || sc0 <= scorenum && scorenum <= sc1)
+      if(sc1 < 0 || (sc0 <= scorenum && scorenum <= sc1))
         {
           if(tr1 >= 0)
             adjusttracks(s, tr0, tr1);
