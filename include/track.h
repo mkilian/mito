@@ -1,10 +1,13 @@
 /*
- * $Id: track.h,v 1.2 1996/04/07 16:46:20 kilian Exp $
+ * $Id: track.h,v 1.3 1996/04/07 22:17:24 kilian Exp $
  *
  * Managing tracks, i.e. sequences of events.
  *
  * $Log: track.h,v $
- * Revision 1.2  1996/04/07 16:46:20  kilian
+ * Revision 1.3  1996/04/07 22:17:24  kilian
+ * User-controllable debugging level.
+ *
+ * Revision 1.2  1996/04/07  16:46:20  kilian
  * Changed return value of track_compress to int.
  *
  * Revision 1.1  1996/04/06  23:00:10  kilian
@@ -101,6 +104,16 @@ typedef struct _Track {
   /* Travering the track. */
   unsigned long current;  /* Current event in this (sub-) track. */
 } Track;
+
+
+/*
+ * Debugging control.
+ * This defaults to 0.
+ */
+extern int track_debug;
+
+#define TRACK_CHECK 0x01  /* Full consistency checks */
+#define TRACK_ACV   0x02  /* Verbose auto-cleanup */
 
 
 /*
