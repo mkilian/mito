@@ -1,10 +1,13 @@
 /*
- * $Id: event.c,v 1.4 1996/04/03 14:26:57 kilian Exp $
+ * $Id: event.c,v 1.5 1996/04/04 16:25:04 kilian Exp $
  *
  * Read midi file messages and events.
  *
  * $Log: event.c,v $
- * Revision 1.4  1996/04/03 14:26:57  kilian
+ * Revision 1.5  1996/04/04 16:25:04  kilian
+ * Issue an error message if arguments of several messages are not data bytes.
+ *
+ * Revision 1.4  1996/04/03  14:26:57  kilian
  * Many fixes in write_event.
  *
  * Revision 1.3  1996/04/02  23:28:40  kilian
@@ -169,6 +172,7 @@ static int convert_meta(MFMessage *msg)
 int read_message(MBUF *b, MFMessage *msg, unsigned char *rs)
 {
   long i = mbuf_pos(b);
+  unsigned char b1, b2;
 
   if(mbuf_rem(b) <= 0)
     {
@@ -184,7 +188,7 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs)
 
   if(!(msg->generic.cmd & 0x80))
     {
-      midiprint(MPError, "reading message: got data byte %h", msg->generic.cmd);
+      midiprint(MPError, "reading message: got data byte %hd", msg->generic.cmd);
       mbuf_set(b, i);
       return 0;
     }
@@ -202,8 +206,20 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs)
             mbuf_set(b, i);
             return 0;
           }
-        msg->noteoff.note = mbuf_get(b);
-        msg->noteoff.velocity = mbuf_get(b);
+        if((b1 = mbuf_get(b)) & 0x80)
+          {
+            midiprint(MPError, "reading message: got status byte %hu", b1);
+            mbuf_set(b, i);
+            return 0;
+          }
+        if((b2 = mbuf_get(b)) & 0x80)
+          {
+            midiprint(MPError, "reading message: got status byte %hu", b2);
+            mbuf_set(b, i);
+            return 0;
+          }
+        msg->noteoff.note = b1;
+        msg->noteoff.velocity = b2;
         *rs = msg->generic.cmd;
         return 1;
         break;
@@ -217,7 +233,13 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs)
             mbuf_set(b, i);
             return 0;
           }
-        msg->programchange.program = mbuf_get(b);
+        if((b1 = mbuf_get(b)) & 0x80)
+          {
+            midiprint(MPError, "reading message: got status byte %hu", b1);
+            mbuf_set(b, i);
+            return 0;
+          }
+        msg->programchange.program = b1;
         *rs = msg->generic.cmd;
         return 1;
         break;
@@ -230,7 +252,19 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs)
             mbuf_set(b, i);
             return 0;
           }
-        msg->pitchwheelchange.value = mbuf_get(b) << 7 | mbuf_get(b);
+        if((b1 = mbuf_get(b)) & 0x80)
+          {
+            midiprint(MPError, "reading message: got status byte %hu", b1);
+            mbuf_set(b, i);
+            return 0;
+          }
+        if((b2 = mbuf_get(b)) & 0x80)
+          {
+            midiprint(MPError, "reading message: got status byte %hu", b2);
+            mbuf_set(b, i);
+            return 0;
+          }
+        msg->pitchwheelchange.value = b1 << 7 | b2;
         msg->pitchwheelchange.value -= 0x2000;
         *rs = msg->generic.cmd;
         return 1;
