@@ -1,11 +1,11 @@
 ########################################################################
-# $Id: Makefile,v 1.1 1996/02/05 16:09:37 kilian Exp $
+# $Id: Makefile,v 1.2 1996/04/06 23:02:51 kilian Exp $
 #
 # Makefile for `cm/lib'.
 #
 # $Log: Makefile,v $
-# Revision 1.1  1996/02/05 16:09:37  kilian
-# checked in with -k by kilian at 1996/04/01 19:08:50
+# Revision 1.2  1996/04/06 23:02:51  kilian
+# Added track.o.
 #
 # Revision 1.1  1996/02/05  16:09:37  kilian
 # Initial revision
@@ -18,7 +18,7 @@ include $(TOP)/Rules
 LIBS      = libmidi.a
 
 # Several groups of object files:
-OBJS	=	buffer.o chunk.o event.o print.o score.o vld.o
+OBJS	=	buffer.o chunk.o event.o print.o score.o track.o vld.o
 
 all:: $(LIBS)
 
