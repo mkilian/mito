@@ -1,10 +1,14 @@
 /*
- * $Id: score.h,v 1.2 1996/04/02 10:18:12 kilian Exp $
+ * $Id: score.h,v 1.3 1996/04/02 23:24:16 kilian Exp $
  *
  * Reading and writing of complete scores.
  *
  * $Log: score.h,v $
- * Revision 1.2  1996/04/02 10:18:12  kilian
+ * Revision 1.3  1996/04/02 23:24:16  kilian
+ * Field `nev' removed. The tracks field now contains the number of events
+ * in each track.
+ *
+ * Revision 1.2  1996/04/02  10:18:12  kilian
  * Changed score structure.
  *
  * Revision 1.1  1996/04/01  19:10:57  kilian
@@ -22,12 +26,9 @@
 /*
  * This contains the score header data and the tracks.
  * The events field points to a list containing all events of the score.
- * The nev field contains the total number of events, i.e. the size (in
- * events) of the events field.
- * The tracks field points to a list that contains the index into the
- * event list to the first event of each track.
- * Thus, to get the event `n' of the track `m' of score `s', use
- * `s.events[s.tracks[m] + n]'.
+ * The tracks field points to a list that contains the number of events
+ * within each track. Thus, to get the fifth event of the third track of
+ * a score `s', use `s.events[s.tracks[0] + s.tracks[1] + 4]'.
  * The fact that all events of all tracks are stored within *one* list
  * allows to merge all tracks into one by just sorting the complete
  * event list by the (absolute) time fields. Although this invalidates
@@ -38,7 +39,6 @@ typedef struct {
   int fmt;
   int ntrk;
   int div;
-  long nev;
   MFEvent *events;
   long *tracks;
 } Score;

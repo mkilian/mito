@@ -1,10 +1,14 @@
 /*
- * $Id: score.c,v 1.2 1996/04/02 10:19:43 kilian Exp $
+ * $Id: score.c,v 1.3 1996/04/02 23:25:23 kilian Exp $
  *
  * Reading and writing of complete scores.
  *
  * $Log: score.c,v $
- * Revision 1.2  1996/04/02 10:19:43  kilian
+ * Revision 1.3  1996/04/02 23:25:23  kilian
+ * Field `nev' removed. The tracks field now contains the number of events
+ * in each track.
+ *
+ * Revision 1.2  1996/04/02  10:19:43  kilian
  * Changed score structure.
  *
  * Revision 1.1  1996/04/01  19:11:06  kilian
@@ -43,7 +47,7 @@ static MFEvent *read_events(MBUF *b, MFEvent *es, long *n)
     {
       if(!(es = realloc(es, sizeof(*es) * (*n+1))))
         {
-          midiprint(MPError, "%s", strerror(errno));
+          midiprint(MPFatal, "%s", strerror(errno));
           return NULL;
         }
 
@@ -52,12 +56,16 @@ static MFEvent *read_events(MBUF *b, MFEvent *es, long *n)
         break;
     }
 
+
+  if(!es)
+    return NULL;
+
   if(es[*n-1].msg.generic.cmd != ENDOFTRACK)
     {
       midiprint(MPError, "inserting missing End Of Track");
       if(!(es = realloc(es, sizeof(*es) * (*n+1))))
         {
-          midiprint(MPError, "%s", strerror(errno));
+          midiprint(MPFatal, "%s", strerror(errno));
           return NULL;
         }
 
@@ -109,7 +117,7 @@ static long read_header(MBUF *b, Score *s)
   if(chunk.type == MThd)
     {
       if(chunk.hdr.mthd.xsize > 0)
-        midiprint(MPError, "large score header (%ld extra bytes)", chunk.hdr.mthd.xsize);
+        midiprint(MPWarn, "large score header (%ld extra bytes)", chunk.hdr.mthd.xsize);
 
       s->fmt = chunk.hdr.mthd.fmt;
       s->ntrk = chunk.hdr.mthd.ntrk;
@@ -193,9 +201,9 @@ static long read_track(MBUF *b)
 int read_score(MBUF *b, Score *s)
 {
   long size;
+  long n = 0;
   int ntrk = 0;
 
-  s->nev = 0;
   s->events = NULL;
   s->tracks = NULL;
 
@@ -204,20 +212,20 @@ int read_score(MBUF *b, Score *s)
 
   while(size >= 0)
     {
-      long n = s->nev;
       MBUF t;
 
       t.b = b->b + b->i;
       t.i = 0;
       t.n = size;
 
+      /* May be that this should be an error. */
       if(!size)
         midiprint(MPWarn, "empty track");
 
-      if(!(s->events = read_events(&t, s->events, &s->nev)))
+      if(!(s->events = read_events(&t, s->events, &n)))
         {
           if(s->tracks) free(s->tracks);
-          return -1;
+          return 0;
         }
 
       b->i += t.i;
@@ -228,9 +236,12 @@ int read_score(MBUF *b, Score *s)
       if(!(s->tracks = realloc(s->tracks, sizeof(*s->tracks) * ntrk)))
         {
           midiprint(MPFatal, "%s", strerror(errno));
-          return -1;
+          return 0;
         }
 
+      /*
+       * We first only store the event indices rather than counts.
+       */
       s->tracks[ntrk-1] = n;
 
       size = read_track(b);
@@ -260,6 +271,12 @@ int read_score(MBUF *b, Score *s)
   if(!s->ntrk)
     midiprint(MPWarn, "empty score");
 
+  /*
+   * Change the event indices into event counts.
+   */
+  for(ntrk = s->ntrk - 1; ntrk > 0; ntrk--)
+    s->tracks[ntrk] -= s->tracks[ntrk-1];
+
   return 1;
 }
 
@@ -269,10 +286,12 @@ int read_score(MBUF *b, Score *s)
  */
 void clear_score(Score *s)
 {
-  long n;
+  MFEvent *es;
+  long n, t;
 
-  for(n = 0; n < s->nev; n++)
-    clear_message(&(s->events[n].msg));
+  for(es = s->events, t = 0; t < s->ntrk; t++)
+    for(n = 0; n < s->tracks[t]; n++)
+      clear_message(&(es++)->msg);
 
   free(s->events);
   free(s->tracks);
