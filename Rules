@@ -1,5 +1,5 @@
 ########################################################################
-# $Id: Rules,v 1.6 1996/05/20 14:03:55 kilian Exp $
+# $Id: Rules,v 1.7 1996/05/21 12:13:40 kilian Exp $
 #
 # Make variables and rules common for all subdirectories.
 # This file should be included by all makefiles, e.g. by a line
@@ -8,6 +8,11 @@
 # for it's own directory.
 #
 # $Log: Rules,v $
+# Revision 1.7  1996/05/21 12:13:40  kilian
+# Added `-r($REV)' to co and rcsclean to allow explicit specification of
+# the revision to extract/cleanup.
+# Made checking out more silent.
+#
 # Revision 1.6  1996/05/20 14:03:55  kilian
 # Added `gmon.out' and `gmon.sum' to the list of files deleted in target `clean'.
 #
@@ -89,9 +94,17 @@ SED       = sed
 MV        = mv -f
 ECHO      = echo
 
-# Keep co silent.
-COFLAGS   = -q
+# Keep co silent. The `REV' variable may be used to extract a specific
+# (symbolic) revision. This must be specified when cheching out, i.e.
+# by `make depend REV=V1/3'.
+COFLAGS   = -q -r$(REV)
 
+# This avoids the `co' messages from make.
+CO        = @co
+
+# As for co, a revision may be specified when making distclean.
+# The version handling should be automated...
+CLNFLAGS  = -r$(REV)
 
 # Names of all C source files (for target `depend'), derived from the
 # variable `OBJS'.
@@ -157,7 +170,7 @@ clean::
 # Cleaning up unmodified source files.
 .PHONY: rcsclean
 rcsclean::
-	rcsclean
+	@rcsclean $(CLNFLAGS)
 
 # Cleaning up everything. In addition to making clean and rcsclean, this
 # deletes all programs (defined in `PROGS'), libraries and backup
