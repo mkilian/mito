@@ -1,5 +1,5 @@
 ########################################################################
-# $Id: Rules,v 1.4 1996/03/03 13:14:10 kilian Exp $
+# $Id: Rules,v 1.5 1996/04/02 10:23:46 kilian Exp $
 #
 # Make variables and rules common for all subdirectories.
 # This file should be included by all makefiles, e.g. by a line
@@ -8,8 +8,8 @@
 # for it's own directory.
 #
 # $Log: Rules,v $
-# Revision 1.4  1996/03/03 13:14:10  kilian
-# checked in with -k by kilian at 1996/04/01 19:10:24
+# Revision 1.5  1996/04/02 10:23:46  kilian
+# Added `REFS' and `refs' to the list of files deleted in target `realclean'.
 #
 # Revision 1.4  1996/03/03  13:14:10  kilian
 # Added target `install' (defaults to do nothing) and some variables
@@ -161,7 +161,7 @@ rcsclean::
 # copies.
 .PHONY: realclean distclean
 realclean distclean:: clean rcsclean
-	$(RM) $(PROGS) *.a *.bak *~ TAGS tags
+	$(RM) $(PROGS) *.a *.bak *~ TAGS tags REFS refs
 
 # Yes, you can make even more then distclean :-)
 # This additionally deletes the dependencies from the makefiles.
