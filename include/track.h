@@ -1,10 +1,13 @@
 /*
- * $Id: track.h,v 1.1 1996/04/06 23:00:10 kilian Exp $
+ * $Id: track.h,v 1.2 1996/04/07 16:46:20 kilian Exp $
  *
  * Managing tracks, i.e. sequences of events.
  *
  * $Log: track.h,v $
- * Revision 1.1  1996/04/06 23:00:10  kilian
+ * Revision 1.2  1996/04/07 16:46:20  kilian
+ * Changed return value of track_compress to int.
+ *
+ * Revision 1.1  1996/04/06  23:00:10  kilian
  * Initial revision
  *
  */
@@ -92,7 +95,7 @@ typedef struct _Track {
   unsigned long total;    /* Total # of events. */
 
   /* Auto-Cleanup. */
-  unsigned long maxdesc;  /* Maximum amount of descendants. */
+  unsigned long maxdescs; /* Maximum amount of descendants. */
   unsigned long maxempty; /* Maximum amount of empty events. */
 
   /* Travering the track. */
@@ -105,6 +108,9 @@ typedef struct _Track {
  * `maxdesc' is the maximum number of descendants before auto-cleanup.
  * `maxempty' is the maximum number of deleted events before auto-cleanup.
  * Setting one of these parameters to zero disables this feature.
+ * The values are interpreted as 1/10000 of the total number of events,
+ * i.e. to cleanup if 10 percent of all events are empty, set `maxempty'
+ * to 1000.
  * The function returns a pointer to the new (empty) track or NULL on
  * errors.
  */
@@ -154,8 +160,11 @@ void track_clear(Track *t);
 
 /*
  * Compress a track, i.e. flatten all links and remove all empty events.
+ * If the compression fails for some reason, this function returns 0,
+ * else 1. Regardless of the return value, the track can be expected to
+ * be consistent in all cases.
  */
-void track_compress(Track *t);
+int track_compress(Track *t);
 
 
 /*
