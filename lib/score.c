@@ -1,10 +1,13 @@
 /*
- * $Id: score.c,v 1.1 1996/04/01 19:11:06 kilian Exp $
+ * $Id: score.c,v 1.2 1996/04/02 10:19:43 kilian Exp $
  *
  * Reading and writing of complete scores.
  *
  * $Log: score.c,v $
- * Revision 1.1  1996/04/01 19:11:06  kilian
+ * Revision 1.2  1996/04/02 10:19:43  kilian
+ * Changed score structure.
+ *
+ * Revision 1.1  1996/04/01  19:11:06  kilian
  * Initial revision
  *
  */
@@ -20,50 +23,49 @@
 
 
 /*
- * Read an event list from the buffer.
+ * Read an event list from the buffer and append it to the event list
+ * `es' that already contains `*n' events.
  * Returns a pointer to the events, which are terminated by an `End Of
- * Track' event. If an error occurs (e.g. out of memory), a NULL pointer
- * is returned.
+ * Track' event. `*n' is updated accordingly.
+ * If an error occurs (e.g. out of memory), a NULL pointer is returned.
  * If an `End Of Track' event comes before the end of the buffer, an
  * error message is issued and the remainder of the buffer is ignored.
  * If very last event of the buffer is no `End Of Track' event, an error
  * message is issued and an `End Of Track' event is automatically
  * appended to the list.
  */
-static MFEvent *read_events(MBUF *b)
+static MFEvent *read_events(MBUF *b, MFEvent *es, long *n)
 {
   char running = 0;
-  long i = 0;
   MFEvent e;
-  MFEvent *es = NULL;
 
   while(mbuf_rem(b) > 0 && read_event(b, &e, &running))
     {
-      if(!(es = realloc(es, sizeof(*es) * (i+1))))
+      if(!(es = realloc(es, sizeof(*es) * (*n+1))))
         {
-          midierror("%s", strerror(errno));
+          midiprint(MPError, "%s", strerror(errno));
           return NULL;
         }
 
-      es[i++] = e;
+      es[(*n)++] = e;
       if(e.msg.generic.cmd == ENDOFTRACK)
         break;
     }
 
-  if(es[i-1].msg.generic.cmd != ENDOFTRACK)
+  if(es[*n-1].msg.generic.cmd != ENDOFTRACK)
     {
-      midierror("inserting missing End Of Track");
-      if(!(es = realloc(es, sizeof(*es) * (i+1))))
+      midiprint(MPError, "inserting missing End Of Track");
+      if(!(es = realloc(es, sizeof(*es) * (*n+1))))
         {
-          midierror("%s", strerror(errno));
+          midiprint(MPError, "%s", strerror(errno));
           return NULL;
         }
 
-      es[i].time = 0;
-      es[i++].msg.generic.cmd = ENDOFTRACK;
+      es[*n].time = 0;
+      es[(*n)++].msg.generic.cmd = ENDOFTRACK;
     }
   else if(mbuf_rem(b) > 0)
-    midierror("ignoring events after End Of Track");
+    midiprint(MPError, "ignoring events after End Of Track");
 
   return es;
 }
@@ -71,8 +73,8 @@ static MFEvent *read_events(MBUF *b)
 
 /*
  * Read the score header (if existing) and the first track header.
- * The header data is filled into the score structure and the length
- * from the track header is returned.
+ * The header data is filled into the score structure and the size field
+ * of the track header is returned.
  * If the score header is missing, an error message is issued and the
  * score fmt field is set to -1.
  * If there is no track header, an error message is issued and -1 is
@@ -102,12 +104,12 @@ static long read_header(MBUF *b, Score *s)
     return -1;
 
   if(skip > 0)
-    midierror("%ld bytes skipped", skip);
+    midiprint(MPError, "%ld bytes skipped", skip);
 
   if(chunk.type == MThd)
     {
       if(chunk.hdr.mthd.xsize > 0)
-        midierror("large score header (%ld extra bytes)", chunk.hdr.mthd.xsize);
+        midiprint(MPError, "large score header (%ld extra bytes)", chunk.hdr.mthd.xsize);
 
       s->fmt = chunk.hdr.mthd.fmt;
       s->ntrk = chunk.hdr.mthd.ntrk;
@@ -123,18 +125,18 @@ static long read_header(MBUF *b, Score *s)
 
       if(skip < 0)
         {
-          midierror("no tracks");
+          midiprint(MPError, "no tracks");
           return -1;
         }
 
       if(skip > 0)
-        midierror("%ld bytes skipped", skip);
+        midiprint(MPError, "%ld bytes skipped", skip);
     }
 
   /* At this point, we should have got a track header. */
   if(chunk.type != MTrk)
     {
-      midierror("no tracks");
+      midiprint(MPError, "no tracks");
       /* Restore the position. */
       mbuf_set(b, pos);
       return -1;
@@ -165,6 +167,9 @@ static long read_track(MBUF *b)
   if(skip < 0)
     return -1;
 
+  if(skip > 0)
+    midiprint(MPError, "%ld bytes skipped", skip);
+
   if(chunk.type != MTrk)
     {
       mbuf_set(b, pos);
@@ -172,7 +177,7 @@ static long read_track(MBUF *b)
     }
 
   if(skip > 0)
-    midierror("%ld bytes skipped", skip);
+    midiprint(MPError, "%ld bytes skipped", skip);
 
   return chunk.hdr.mtrk.size;
 }
@@ -187,41 +192,46 @@ static long read_track(MBUF *b)
  */
 int read_score(MBUF *b, Score *s)
 {
-  MBUF t;
-  MFEvent *es;
   long size;
   int ntrk = 0;
+
+  s->nev = 0;
+  s->events = NULL;
+  s->tracks = NULL;
 
   if((size = read_header(b, s)) < 0)
     return 0;
 
   while(size >= 0)
     {
-      if(!size)
-        midiwarn("empty track");
+      long n = s->nev;
+      MBUF t;
 
       t.b = b->b + b->i;
       t.i = 0;
       t.n = size;
 
-      if(!(es = read_events(&t)))
-        {
-          while(ntrk-- > 0)
-            free(s->tracks[ntrk]);
+      if(!size)
+        midiprint(MPWarn, "empty track");
 
-          free(s->tracks);
+      if(!(s->events = read_events(&t, s->events, &s->nev)))
+        {
+          if(s->tracks) free(s->tracks);
           return -1;
         }
 
+      b->i += t.i;
+
       ntrk++;
+
       /* This may leave dead allocations in memory! */
       if(!(s->tracks = realloc(s->tracks, sizeof(*s->tracks) * ntrk)))
         {
-          midierror("%s", strerror(errno));
+          midiprint(MPFatal, "%s", strerror(errno));
           return -1;
         }
 
-      s->tracks[ntrk-1] = es;
+      s->tracks[ntrk-1] = n;
 
       size = read_track(b);
     }
@@ -238,17 +248,32 @@ int read_score(MBUF *b, Score *s)
     }
   else if(s->ntrk > ntrk)
     {
-      midierror("%ld tracks missing", s->ntrk - ntrk);
+      midiprint(MPError, "%ld tracks missing", s->ntrk - ntrk);
       s->ntrk = ntrk;
     }
   else if(s->ntrk < ntrk)
     {
-      midierror("%ld extraneous tracks", ntrk - s->ntrk);
+      midiprint(MPError, "%ld extraneous tracks", ntrk - s->ntrk);
       s->ntrk = ntrk;
     }
 
   if(!s->ntrk)
-    midiwarn("empty score");
+    midiprint(MPWarn, "empty score");
 
-  return 0;
+  return 1;
+}
+
+
+/*
+ * Free all allocated data.
+ */
+void clear_score(Score *s)
+{
+  long n;
+
+  for(n = 0; n < s->nev; n++)
+    clear_message(&(s->events[n].msg));
+
+  free(s->events);
+  free(s->tracks);
 }
