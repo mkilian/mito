@@ -1,10 +1,13 @@
 /*
- * $Id: event.c,v 1.2 1996/04/02 10:19:57 kilian Exp $
+ * $Id: event.c,v 1.3 1996/04/02 23:28:40 kilian Exp $
  *
  * Read midi file messages and events.
  *
  * $Log: event.c,v $
- * Revision 1.2  1996/04/02 10:19:57  kilian
+ * Revision 1.3  1996/04/02 23:28:40  kilian
+ * Treat writing of unknown message types as fatal error.
+ *
+ * Revision 1.2  1996/04/02  10:19:57  kilian
  * Adapted changes of the print functions.
  *
  * Revision 1.1  1996/04/01  19:11:06  kilian
@@ -360,7 +363,8 @@ int write_message(MBUF *b, MFMessage *msg, unsigned char *rs)
         return write_vld(b, msg->sequencerspecific.data);
     }
 
-  midiprint(MPError, "writing message: unknown message type %hd", cmd);
+  /* This should never happen! */
+  midiprint(MPFatal, "writing message: unknown message type %hd", cmd);
   return 0;
 }
 
