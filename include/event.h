@@ -1,10 +1,13 @@
 /*
- * $Id: event.h,v 1.1 1996/04/01 19:10:57 kilian Exp $
+ * $Id: event.h,v 1.2 1996/04/02 23:23:12 kilian Exp $
  *
  * Read midi file messages and events.
  *
  * $Log: event.h,v $
- * Revision 1.1  1996/04/01 19:10:57  kilian
+ * Revision 1.2  1996/04/02 23:23:12  kilian
+ * Fix: command and channel nibble swapped in channel voice messages.
+ *
+ * Revision 1.1  1996/04/01  19:10:57  kilian
  * Initial revision
  *
  */
@@ -73,37 +76,37 @@ typedef struct {
 } MFGeneric;
 
 typedef struct {
-  unsigned char cmd:4, chn:4;
+  unsigned char chn:4, cmd:4;
   unsigned char note, velocity;
 } MFNoteOff;
 
 typedef struct {
-  unsigned char cmd:4, chn:4;
+  unsigned char chn:4, cmd:4;
   unsigned char note, velocity;
 } MFNoteOn;
 
 typedef struct {
-  unsigned char cmd:4, chn:4;
+  unsigned char chn:4, cmd:4;
   unsigned char note, velocity;
 } MFKeyPressure;
 
 typedef struct {
-  unsigned char cmd:4, chn:4;
+  unsigned char chn:4, cmd:4;
   unsigned char controller, value;
 } MFControlChange;
 
 typedef struct {
-  unsigned char cmd:4, chn:4;
+  unsigned char chn:4, cmd:4;
   unsigned char program;
 } MFProgramChange;
 
 typedef struct {
-  unsigned char cmd:4, chn:4;
+  unsigned char chn:4, cmd:4;
   unsigned char velocity;
 } MFChannelPressure;
 
 typedef struct {
-  unsigned char cmd:4, chn:4;
+  unsigned char chn:4, cmd:4;
   short value;                /* Within the midi file, this is
                                * a 2x7bit quantity. */
 } MFPitchWheelChange;
