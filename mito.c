@@ -1,10 +1,13 @@
 /*
- * $Id: mito.c,v 1.7 1996/04/07 16:47:23 kilian Exp $
+ * $Id: mito.c,v 1.8 1996/04/07 19:20:01 kilian Exp $
  *
  * mito --- the midi tool
  *
  * $Log: mito.c,v $
- * Revision 1.7  1996/04/07 16:47:23  kilian
+ * Revision 1.8  1996/04/07 19:20:01  kilian
+ * Simplified mergetracks.
+ *
+ * Revision 1.7  1996/04/07  16:47:23  kilian
  * Added maxdescs and maxempty parameters to calls to score_read.
  *
  * Revision 1.6  1996/04/06  23:04:27  kilian
@@ -364,29 +367,24 @@ static void adjusttracks(Score *s, long from, long to)
 static void mergetracks(Score *s)
 {
   MFEvent *e;
-  long t1, t2;
+  unsigned long t;
 
-  while(s->ntrk > 1)
+  for(t = 1; t < s->ntrk; t++)
     {
-      for(t1 = 0, t2 = (s->ntrk + 1) / 2; t1 < s->ntrk / 2; t1++, t2++)
-        {
-          track_rewind(s->tracks[t1]);
-          track_rewind(s->tracks[t2]);
+      track_rewind(s->tracks[t]);
+      while((e = track_step(s->tracks[t], 0)))
+        if(!track_insert(s->tracks[0], e))
+          {
+            midiprint(MPFatal, "%s", strerror(errno));
+            exit(EXIT_FAILURE);
+          }
+        else
+          e->msg.empty.type = EMPTY;
 
-          while((e = track_step(s->tracks[t2], 0)))
-            if(!track_insert(s->tracks[t1], e))
-              {
-                midiprint(MPFatal, "%s", strerror(errno));
-                exit(EXIT_FAILURE);
-              }
-            else
-              e->msg.empty.type = EMPTY;
-
-          track_clear(s->tracks[t2]);
-        }
-
-      s->ntrk = (s->ntrk + 1) / 2;
+      track_clear(s->tracks[t]);
     }
+
+  s->ntrk = 1;
 
   /* Delete all but the last End Of Track events. */
   track_rewind(s->tracks[0]);
