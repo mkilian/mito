@@ -1,10 +1,13 @@
 /*
- * $Id: chunk.c,v 1.3 1996/04/02 23:26:30 kilian Exp $
+ * $Id: chunk.c,v 1.4 1996/04/03 14:23:54 kilian Exp $
  *
  * Get header and track chunks of standard midi files.
  *
  * $Log: chunk.c,v $
- * Revision 1.3  1996/04/02 23:26:30  kilian
+ * Revision 1.4  1996/04/03 14:23:54  kilian
+ * Added write_MThd and write_MTrk.
+ *
+ * Revision 1.3  1996/04/02  23:26:30  kilian
  * Restore buffer position if no chunk was found.
  * Treat `This can't happen' as fatal error.
  *
@@ -179,4 +182,49 @@ long search_chunk(MBUF *b, CHUNK *chunk, unsigned long mtl)
       b->i = i;
       return -1;
     }
+}
+
+
+/*
+ * Write a header chunk with the given fields.
+ * Return 1 on succes, 0 on error.
+ */
+int write_MThd(MBUF *b, int fmt, int ntrk, int div)
+{
+  char hdr[14] = "MThd\0\0\0\6";
+  int i;
+
+  hdr[8] = (fmt >> 8) & 0xff;
+  hdr[9] = fmt & 0xff;
+  hdr[10] = (ntrk >> 8) & 0xff;
+  hdr[11] = ntrk & 0xff;
+  hdr[12] = (ntrk >> 8) & 0xff;
+  hdr[13] = div & 0xff;
+
+  for(i = 0; i < 14; i++)
+    if(mbuf_put(b, hdr[i]) == EOF)
+      return 0;
+
+  return 1;
+}
+
+
+/*
+ * Write a track chunk with the given size.
+ */
+int write_MTrk(MBUF *b, long size)
+{
+  char hdr[8] = "MTrk";
+  int i;
+
+  hdr[4] = (size >> 24)  & 0xff;
+  hdr[5] = (size >> 16)  & 0xff;
+  hdr[6] = (size >> 8)  & 0xff;
+  hdr[7] = size  & 0xff;
+
+  for(i = 0; i < 8; i++)
+    if(mbuf_put(b, hdr[i]) == EOF)
+      return 0;
+
+  return 1;
 }

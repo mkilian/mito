@@ -1,10 +1,13 @@
 /*
- * $Id: chunk.h,v 1.1 1996/04/01 19:10:57 kilian Exp $
+ * $Id: chunk.h,v 1.2 1996/04/03 14:23:54 kilian Exp $
  *
  * Get header and track chunks of standard midi files.
  *
  * $Log: chunk.h,v $
- * Revision 1.1  1996/04/01 19:10:57  kilian
+ * Revision 1.2  1996/04/03 14:23:54  kilian
+ * Added write_MThd and write_MTrk.
+ *
+ * Revision 1.1  1996/04/01  19:10:57  kilian
  * Initial revision
  *
  */
@@ -71,6 +74,19 @@ typedef struct {
  * number of bytes skipped before the chunk (normally 0).
  */
 long search_chunk(MBUF *b, CHUNK *chunk, unsigned long mtl);
+
+
+/*
+ * Write a header chunk with the given fields.
+ * Return 1 on succes, 0 on error.
+ */
+int write_MThd(MBUF *b, int fmt, int ntrk, int div);
+
+
+/*
+ * Write a track chunk with the given size.
+ */
+int write_MTrk(MBUF *b, long size);
 
 
 #endif /* __CHUNK_H__ */
