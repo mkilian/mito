@@ -1,10 +1,13 @@
 /*
- * $Id: vld.h,v 1.1 1996/04/01 19:10:57 kilian Exp $
+ * $Id: vld.h,v 1.2 1996/04/03 14:24:31 kilian Exp $
  *
  * Read variable sized quantities and data.
  *
  * $Log: vld.h,v $
- * Revision 1.1  1996/04/01 19:10:57  kilian
+ * Revision 1.2  1996/04/03 14:24:31  kilian
+ * Made argument to vld_size and vld_data const.
+ *
+ * Revision 1.1  1996/04/01  19:10:57  kilian
  * Initial revision
  *
  */
@@ -43,18 +46,18 @@ void *read_vld(MBUF *b);
  * Write variable length data, i.e. a vlq and following data bytes.
  * The number of bytes written, or 0 on error.
  */
-long write_vld(MBUF *b, void *vld);
+long write_vld(MBUF *b, const void *vld);
 
 
 /*
  * Get the size of vld.
  */
-long vld_size(void *vld);
+long vld_size(const void *vld);
 
 
 /*
  * Get the data of vld.
  */
-void *vld_data(void *vld);
+const void *vld_data(const void *vld);
 
 #endif /* __VLD_H__ */
