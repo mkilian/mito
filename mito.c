@@ -1,10 +1,13 @@
 /*
- * $Id: mito.c,v 1.5 1996/04/04 16:26:34 kilian Exp $
+ * $Id: mito.c,v 1.6 1996/04/06 23:04:27 kilian Exp $
  *
  * mito --- the midi tool
  *
  * $Log: mito.c,v $
- * Revision 1.5  1996/04/04 16:26:34  kilian
+ * Revision 1.6  1996/04/06 23:04:27  kilian
+ * Changes due to the new track structure.
+ *
+ * Revision 1.5  1996/04/04  16:26:34  kilian
  * Improved output of text messages.
  * Fixed concatenating of tracks.
  *
@@ -31,6 +34,7 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
+#include <assert.h>
 
 #include "midi.h"
 #include "vld.h"
@@ -180,175 +184,146 @@ static char *strdat(void *vld)
  */
 static void showtracks(Score *s, int flags)
 {
-  long n, ntotal;
+  MFEvent *e;
+  long t;
 
-  for(n = ntotal = 0; n < s->ntrk; n++)
+  for(t = 0; t < s->ntrk; t++)
     {
-      ntotal += s->tracks[n];
+      long ne = s->tracks[t]->total -
+                s->tracks[t]->descs -
+                s->tracks[t]->empty;
+
+      track_rewind(s->tracks[t]);
+
       if(flags & SHOWTLENGTHS)
-        midiprint(MPNote, "       %7lu", s->tracks[n]);
+        midiprint(MPNote, "       %7lu", ne);
     }
 
   if(flags & SHOWEVENTS)
-    for(n = 0; n < ntotal; n++)
-      {
-        MFEvent *e = s->events + n;
+    for(t = 0; t < s->ntrk; t++)
+      while((e = track_step(s->tracks[t], 0)))
+        {
+          switch(e->msg.generic.cmd & 0xf0)
+            {
+              case NOTEOFF:
+                midiprint(MPNote, "%8ld NoteOff %hd %hd %hd", e->time,
+                          e->msg.noteoff.chn, e->msg.noteoff.note,
+                          e->msg.noteoff.velocity);
+                continue;
+              case NOTEON:
+                midiprint(MPNote, "%8ld NoteOn %hd %hd %hd", e->time,
+                          e->msg.noteon.chn, e->msg.noteon.note,
+                          e->msg.noteon.velocity);
+                continue;
+              case KEYPRESSURE:
+                midiprint(MPNote, "%8ld KeyPressure %hd %hd %hd", e->time,
+                          e->msg.keypressure.chn, e->msg.keypressure.note,
+                          e->msg.keypressure.velocity);
+                continue;
+              case CONTROLCHANGE:
+                midiprint(MPNote, "%8ld ControlChange %hd %hd %hd", e->time,
+                          e->msg.controlchange.chn,
+                          e->msg.controlchange.controller,
+                          e->msg.controlchange.value);
+                continue;
+              case PROGRAMCHANGE:
+                midiprint(MPNote, "%8ld ProgramChange %hd %hd", e->time,
+                          e->msg.programchange.chn,
+                          e->msg.programchange.program);
+                continue;
+              case CHANNELPRESSURE:
+                midiprint(MPNote, "%8ld ChannelPressure %hd %hd", e->time,
+                          e->msg.channelpressure.chn,
+                          e->msg.channelpressure.velocity);
+                continue;
+              case PITCHWHEELCHANGE:
+                midiprint(MPNote, "%8ld PitchWheelChange %hd %hd", e->time,
+                          e->msg.pitchwheelchange.chn,
+                          e->msg.pitchwheelchange.value);
+                continue;
+            }
 
-        switch(e->msg.generic.cmd & 0xf0)
-          {
-            case NOTEOFF:
-              midiprint(MPNote, "%8ld NoteOff %hd %hd %hd", e->time,
-                        e->msg.noteoff.chn, e->msg.noteoff.note,
-                        e->msg.noteoff.velocity);
-              continue;
-            case NOTEON:
-              midiprint(MPNote, "%8ld NoteOn %hd %hd %hd", e->time,
-                        e->msg.noteon.chn, e->msg.noteon.note,
-                        e->msg.noteon.velocity);
-              continue;
-            case KEYPRESSURE:
-              midiprint(MPNote, "%8ld KeyPressure %hd %hd %hd", e->time,
-                        e->msg.keypressure.chn, e->msg.keypressure.note,
-                        e->msg.keypressure.velocity);
-              continue;
-            case CONTROLCHANGE:
-              midiprint(MPNote, "%8ld ControlChange %hd %hd %hd", e->time,
-                        e->msg.controlchange.chn,
-                        e->msg.controlchange.controller,
-                        e->msg.controlchange.value);
-              continue;
-            case PROGRAMCHANGE:
-              midiprint(MPNote, "%8ld ProgramChange %hd %hd", e->time,
-                        e->msg.programchange.chn,
-                        e->msg.programchange.program);
-              continue;
-            case CHANNELPRESSURE:
-              midiprint(MPNote, "%8ld ChannelPressure %hd %hd", e->time,
-                        e->msg.channelpressure.chn,
-                        e->msg.channelpressure.velocity);
-              continue;
-            case PITCHWHEELCHANGE:
-              midiprint(MPNote, "%8ld PitchWheelChange %hd %hd", e->time,
-                        e->msg.pitchwheelchange.chn,
-                        e->msg.pitchwheelchange.value);
-              continue;
-          }
+          switch(e->msg.generic.cmd)
+            {
+              case SYSTEMEXCLUSIVE:
+                midiprint(MPNote, "%8ld SystemExclusive `%s'", e->time,
+                          strdat(e->msg.systemexclusive.data));
+                continue;
+              case SYSTEMEXCLUSIVECONT:
+                midiprint(MPNote, "%8ld SystemExclusiveCont `%s'", e->time,
+                          strdat(e->msg.systemexclusivecont.data));
+                continue;
+              case META:
+                midiprint(MPNote, "%8ld Meta %hd `%s'", e->time,
+                          e->msg.meta.type, strdat(e->msg.meta.data));
+                continue;
+              case SEQUENCENUMBER:
+                midiprint(MPNote, "%8ld SequenceNumber %hu", e->time,
+                          e->msg.sequencenumber.sequencenumber);
+                continue;
+              case TEXT:
+                midiprint(MPNote, "%8ld Text `%s'", e->time,
+                          strdat(e->msg.text.text));
+                continue;
+              case COPYRIGHTNOTICE:
+                midiprint(MPNote, "%8ld CopyrightNotice `%s'", e->time,
+                          strdat(e->msg.copyrightnotice.text));
+                continue;
+              case TRACKNAME:
+                midiprint(MPNote, "%8ld TrackName `%s'", e->time,
+                          strdat(e->msg.trackname.text));
+                continue;
+              case INSTRUMENTNAME:
+                midiprint(MPNote, "%8ld InstrumentName `%s'", e->time,
+                          strdat(e->msg.instrumentname.text));
+                continue;
+              case LYRIC:
+                midiprint(MPNote, "%8ld Lyric `%s'", e->time,
+                          strdat(e->msg.lyric.text));
+                continue;
+              case MARKER:
+                midiprint(MPNote, "%8ld Marker `%s'", e->time,
+                          strdat(e->msg.marker.text));
+                continue;
+              case CUEPOINT:
+                midiprint(MPNote, "%8ld CuePoint `%s'", e->time,
+                          strdat(e->msg.cuepoint.text));
+                continue;
+              case ENDOFTRACK:
+                midiprint(MPNote, "%8ld EndOfTrack", e->time);
+                continue;
+              case SETTEMPO:
+                midiprint(MPNote, "%8ld SetTempo %ld", e->time,
+                          e->msg.settempo.tempo);
+                continue;
+              case SMPTEOFFSET:
+                midiprint(MPNote, "%8ld SMPTEOffset %hd %hd %hd %hd %hd",
+                          e->time, e->msg.smpteoffset.hours,
+                          e->msg.smpteoffset.minutes,
+                          e->msg.smpteoffset.seconds,
+                          e->msg.smpteoffset.frames,
+                          e->msg.smpteoffset.subframes);
+                continue;
+              case TIMESIGNATURE:
+                midiprint(MPNote, "%8ld TimeSignature %hd %hd %hd %hd",
+                          e->time, e->msg.timesignature.nominator,
+                          e->msg.timesignature.denominator,
+                          e->msg.timesignature.clocksperclick,
+                          e->msg.timesignature.ttperquarter);
+                continue;
+              case KEYSIGNATURE:
+                midiprint(MPNote, "%8ld KeySignature %hd %hd", e->time,
+                          e->msg.keysignature.sharpsflats,
+                          e->msg.keysignature.minor);
+                continue;
+              case SEQUENCERSPECIFIC:
+                midiprint(MPNote, "%8ld SequencerSpecific `%s'", e->time,
+                          strdat(e->msg.sequencerspecific.data));
+                continue;
+            }
 
-        switch(e->msg.generic.cmd)
-          {
-            case SYSTEMEXCLUSIVE:
-              midiprint(MPNote, "%8ld SystemExclusive `%s'", e->time,
-                        strdat(e->msg.systemexclusive.data));
-              continue;
-            case SYSTEMEXCLUSIVECONT:
-              midiprint(MPNote, "%8ld SystemExclusiveCont `%s'", e->time,
-                        strdat(e->msg.systemexclusivecont.data));
-              continue;
-            case META:
-              midiprint(MPNote, "%8ld Meta %hd `%s'", e->time,
-                        e->msg.meta.type, strdat(e->msg.meta.data));
-              continue;
-            case SEQUENCENUMBER:
-              midiprint(MPNote, "%8ld SequenceNumber %hu", e->time,
-                        e->msg.sequencenumber.sequencenumber);
-              continue;
-            case TEXT:
-              midiprint(MPNote, "%8ld Text `%s'", e->time,
-                        strdat(e->msg.text.text));
-              continue;
-            case COPYRIGHTNOTICE:
-              midiprint(MPNote, "%8ld CopyrightNotice `%s'", e->time,
-                        strdat(e->msg.copyrightnotice.text));
-              continue;
-            case TRACKNAME:
-              midiprint(MPNote, "%8ld TrackName `%s'", e->time,
-                        strdat(e->msg.trackname.text));
-              continue;
-            case INSTRUMENTNAME:
-              midiprint(MPNote, "%8ld InstrumentName `%s'", e->time,
-                        strdat(e->msg.instrumentname.text));
-              continue;
-            case LYRIC:
-              midiprint(MPNote, "%8ld Lyric `%s'", e->time,
-                        strdat(e->msg.lyric.text));
-              continue;
-            case MARKER:
-              midiprint(MPNote, "%8ld Marker `%s'", e->time,
-                        strdat(e->msg.marker.text));
-              continue;
-            case CUEPOINT:
-              midiprint(MPNote, "%8ld CuePoint `%s'", e->time,
-                        strdat(e->msg.cuepoint.text));
-              continue;
-            case ENDOFTRACK:
-              midiprint(MPNote, "%8ld EndOfTrack", e->time);
-              continue;
-            case SETTEMPO:
-              midiprint(MPNote, "%8ld SetTempo %ld", e->time,
-                        e->msg.settempo.tempo);
-              continue;
-            case SMPTEOFFSET:
-              midiprint(MPNote, "%8ld SMPTEOffset %hd %hd %hd %hd %hd",
-                        e->time, e->msg.smpteoffset.hours,
-                        e->msg.smpteoffset.minutes,
-                        e->msg.smpteoffset.seconds,
-                        e->msg.smpteoffset.frames,
-                        e->msg.smpteoffset.subframes);
-              continue;
-            case TIMESIGNATURE:
-              midiprint(MPNote, "%8ld TimeSignature %hd %hd %hd %hd",
-                        e->time, e->msg.timesignature.nominator,
-                        e->msg.timesignature.denominator,
-                        e->msg.timesignature.clocksperclick,
-                        e->msg.timesignature.ttperquarter);
-              continue;
-            case KEYSIGNATURE:
-              midiprint(MPNote, "%8ld KeySignature %hd %hd", e->time,
-                        e->msg.keysignature.sharpsflats,
-                        e->msg.keysignature.minor);
-              continue;
-            case SEQUENCERSPECIFIC:
-              midiprint(MPNote, "%8ld SequencerSpecific `%s'", e->time,
-                        strdat(e->msg.sequencerspecific.data));
-              continue;
-          }
-
-        midiprint(MPNote, "%8ld Unknown %hu", e->time, e->msg.generic.cmd);
-      }
-}
-
-
-/*
- * Convert delta times to absolute times.
- */
-static void deltatoabs(Score *s)
-{
-  long t, etotal, e;
-
-  for(etotal = t = 0; t < s->ntrk; t++)
-    {
-      for(e = 1; e < s->tracks[t]; e++)
-        s->events[etotal+e].time += s->events[etotal+e-1].time;
-
-      etotal += s->tracks[t];
-    }
-}
-
-
-/*
- * Convert absolute times to delta times.
- */
-static void abstodelta(Score *s)
-{
-  long t, etotal, e;
-
-  for(etotal = t = 0; t < s->ntrk; t++)
-    {
-      for(e = s->tracks[t] - 1; e > 1; e--)
-        s->events[etotal+e].time -= s->events[etotal+e-1].time;
-
-      etotal += s->tracks[t];
-    }
+          midiprint(MPNote, "%8ld Unknown %hu", e->time, e->msg.generic.cmd);
+        }
 }
 
 
@@ -357,7 +332,7 @@ static void abstodelta(Score *s)
  */
 static void adjusttracks(Score *s, long from, long to)
 {
-  long t, startx, endx, tendx;
+  long t;
 
   /* Ensure that from and to are within the score's bounds. */
   if(to >= s->ntrk)
@@ -366,105 +341,57 @@ static void adjusttracks(Score *s, long from, long to)
   if(from >= s->ntrk || from > to)
     return;
 
-  /*
-   * Clear all events before track `from' and remember the starting
-   * position.
-   */
-  for(t = startx = 0; t < from; t++)
-    while(s->tracks[t]--)
-      clear_message(&s->events[startx++].msg);
+  for(t = 0; t < from; t++)
+    {
+      track_clear(s->tracks[t]);
+      s->tracks[t] = s->tracks[t + from];
+    }
 
-  /*
-   * Search the end position, i.e. the index of the first element after
-   * track `to'.
-   */
-  for(endx = startx, t = from; t <= to; t++)
-    endx += s->tracks[t];
+  for(t = to + 1; t < s->ntrk; t++)
+    track_clear(s->tracks[t]);
 
-  /*
-   * Clear all events after `to'.
-   */
-  for(tendx = endx, t = to + 1; t < s->ntrk; t++)
-    while(s->tracks[t]--)
-      clear_message(&s->events[tendx++].msg);
-
-  /*
-   * Move down the track indices.
-   */
-  memmove(s->tracks, s->tracks + from, (to - from + 1) * sizeof(*s->tracks));
-
-  /*
-   * Move down the events.
-   */
-  memmove(s->events, s->events + startx, (endx - startx) * sizeof(*s->events));
-
-  /*
-   * Adjust the number of tracks.
-   */
-  s->ntrk = to - from + 1;
+  s->ntrk = to + 1 - from;
 }
 
-
-/*
- * This function is used to sort events by time.
- * It takes care that `End Of Track' Events allways will be greater than
- * other events. If both events are `End Of Track' events, the one with
- * the *greater* time will be reported to be less than the event with
- * the smaller time value. This ensures that only the very last `End Of
- * Track' message will be used when merging.
- * If two events have the same time and neither of them is an `End Of
- * Track' event, the command fields are compared.
- */
-static int _eventcmp(const void *_e1, const void *_e2)
-{
-  const MFEvent *e1 = _e1, *e2 = _e2;
-
-  if(e1->msg.generic.cmd == ENDOFTRACK && e2->msg.generic.cmd == ENDOFTRACK)
-    return e2->time - e1->time;
-  else if(e1->msg.generic.cmd == ENDOFTRACK)
-    return 1;
-  else if(e2->msg.generic.cmd == ENDOFTRACK)
-    return -1;
-  else if(e1->time != e2->time)
-    return e1->time - e2->time;
-  else
-    return e1->msg.generic.cmd - e2->msg.generic.cmd;
-}
 
 
 /*
  * Merge all the tracks of `s' into one.
- * The time fields of the events must be absolute times.
  */
 static void mergetracks(Score *s)
 {
-  long etotal, t;
+  MFEvent *e;
+  long t1, t2;
 
-  /*
-   * If there are less than two tracks, there is not much to do.
-   */
-  if(s->ntrk < 2)
-    return;
+  while(s->ntrk > 1)
+    {
+      for(t1 = 0, t2 = (s->ntrk + 1) / 2; t1 < s->ntrk / 2; t1++, t2++)
+        {
+          track_rewind(s->tracks[t1]);
+          track_rewind(s->tracks[t2]);
 
-  /*
-   * Count the total number of events.
-   */
-  for(etotal = t = 0; t < s->ntrk; t++)
-    etotal += s->tracks[t];
+          while((e = track_step(s->tracks[t2], 0)))
+            if(!track_insert(s->tracks[t1], e))
+              {
+                midiprint(MPFatal, "%s", strerror(errno));
+                exit(EXIT_FAILURE);
+              }
+            else
+              e->msg.empty.type = EMPTY;
 
-  /*
-   * Now, sort all events by time.
-   */
-  qsort(s->events, etotal, sizeof(*s->events), _eventcmp);
+          track_clear(s->tracks[t2]);
+        }
 
-  /*
-   * Update the size of the first track and the number of tracks.
-   * Since each track ends with an `End Of Track' event, we have to
-   * forget the last `s->ntrk - 1' events, so that exactly one `End Of
-   * Track' event will be left over.
-   */
-  s->tracks[0] = etotal - (s->ntrk - 1);
-  s->ntrk = 1;
+      s->ntrk = (s->ntrk + 1) / 2;
+    }
+
+  /* Delete all but the last End Of Track events. */
+  track_rewind(s->tracks[0]);
+  e = track_step(s->tracks[0], 1);
+  assert(e != NULL && e->msg.endoftrack.type == ENDOFTRACK);
+  while((e = track_step(s->tracks[0], 1)))
+    if(e->msg.endoftrack.type == ENDOFTRACK)
+      track_delete(s->tracks[0]);
 }
 
 
@@ -477,15 +404,16 @@ static void mergetracks(Score *s)
 static int write_tracks(MBUF *b, Score *s, int concat)
 {
   long phdr = 0, ptrk = 0;
-  MFEvent *es;
-  long t, e, n;
+  MFEvent *e;
+  long t;
   unsigned char running;
 
   if(s->ntrk < 1)
     return 1;
 
-  for(t = 0, es = s->events; t < s->ntrk; t++)
+  for(t = 0; t < s->ntrk; t++)
     {
+      long time = 0;
       errno = 0;
 
       if(t == 0 || !concat)
@@ -500,19 +428,27 @@ static int write_tracks(MBUF *b, Score *s, int concat)
           running = 0;
         }
 
-      n = s->tracks[t];
-      if(concat && t < s->ntrk - 1)
-        n--;
+      track_rewind(s->tracks[t]);
+      while((e = track_step(s->tracks[t], 0)))
+        {
+          e->time -= time;
+          time += e->time;
 
-      for(e = 0; e < n; e++)
-        if(!write_event(b, es + e, &running))
-          {
-            if(errno)
-              midiprint(MPFatal, "%s", strerror(errno));
-            else
-              midiprint(MPFatal, "writing event failed");
-            return 0;
-          }
+          /*
+           * If we are in concat mode, we only write the very last EOT
+           * event.
+           */
+          if((!concat || t == s->ntrk - 1 ||
+              e->msg.endoftrack.type != ENDOFTRACK) &&
+             !write_event(b, e, &running))
+            {
+              if(errno)
+                midiprint(MPFatal, "%s", strerror(errno));
+              else
+                midiprint(MPFatal, "writing event failed");
+              return 0;
+            }
+        }
 
       if(!concat)
         {
@@ -525,8 +461,6 @@ static int write_tracks(MBUF *b, Score *s, int concat)
             }
           mbuf_set(b, p);
         }
-
-      es += s->tracks[t];
     }
 
   return 1;
@@ -607,7 +541,7 @@ static int dofile(const char *spec, int flags)
 
   error = 0;
 
-  if(!read_score(b, s))
+  if(!(s = score_read(b)))
     {
       midiprint(MPFatal, "no headers or tracks found");
       return 1;
@@ -617,8 +551,6 @@ static int dofile(const char *spec, int flags)
 
   if(sc1 < 0 || sc0 <= scorenum && scorenum <= sc1)
     {
-      deltatoabs(s);
-
       if(tr1 >= 0)
         adjusttracks(s, tr0, tr1);
 
@@ -638,7 +570,6 @@ static int dofile(const char *spec, int flags)
 
       if(outb)
         {
-          abstodelta(s);
           write_tracks(outb, s, flags & CONCATTRACKS);
           if(flags & CONCATTRACKS)
             outntrk++;
@@ -646,17 +577,15 @@ static int dofile(const char *spec, int flags)
             outntrk += s->ntrk;
         }
 
-      clear_score(s);
+      score_clear(s);
     }
 
   scorenum++;
 
-  while(mbuf_rem(b) > 0 && read_score(b, s))
+  while(mbuf_rem(b) > 0 && (s = score_read(b)))
     {
       if(sc1 < 0 || sc0 <= scorenum && scorenum <= sc1)
         {
-          deltatoabs(s);
-
           if(tr1 >= 0)
             adjusttracks(s, tr0, tr1);
 
@@ -676,7 +605,6 @@ static int dofile(const char *spec, int flags)
 
           if(outb)
             {
-              abstodelta(s);
               write_tracks(outb, s, flags & CONCATTRACKS);
               if(flags & CONCATTRACKS)
                 outntrk++;
@@ -684,7 +612,7 @@ static int dofile(const char *spec, int flags)
                 outntrk += s->ntrk;
             }
 
-          clear_score(s);
+          score_clear(s);
         }
 
       scorenum++;

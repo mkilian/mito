@@ -1,10 +1,13 @@
 /*
- * $Id: score.h,v 1.3 1996/04/02 23:24:16 kilian Exp $
+ * $Id: score.h,v 1.4 1996/04/06 23:00:10 kilian Exp $
  *
  * Reading and writing of complete scores.
  *
  * $Log: score.h,v $
- * Revision 1.3  1996/04/02 23:24:16  kilian
+ * Revision 1.4  1996/04/06 23:00:10  kilian
+ * Changes due to the new track structure.
+ *
+ * Revision 1.3  1996/04/02  23:24:16  kilian
  * Field `nev' removed. The tracks field now contains the number of events
  * in each track.
  *
@@ -21,48 +24,51 @@
 
 #include "buffer.h"
 #include "event.h"
+#include "track.h"
 
 
 /*
  * This contains the score header data and the tracks.
- * The events field points to a list containing all events of the score.
- * The tracks field points to a list that contains the number of events
- * within each track. Thus, to get the fifth event of the third track of
- * a score `s', use `s.events[s.tracks[0] + s.tracks[1] + 4]'.
- * The fact that all events of all tracks are stored within *one* list
- * allows to merge all tracks into one by just sorting the complete
- * event list by the (absolute) time fields. Although this invalidates
- * the indices of the tracks field, this can be useful, for example, if
- * when playing the score on the midi port.
  */
 typedef struct {
   int fmt;
   int ntrk;
   int div;
-  MFEvent *events;
-  long *tracks;
+  Track **tracks;
 } Score;
+
+
+/*
+ * Create a new score.
+ */
+Score *score_new(void);
+
+
+/*
+ * Add an empty track to a score.
+ * Returns 1 on success, else 0.
+ */
+int score_add(Score *s);
 
 
 /*
  * Read the next score from a buffer (there may be multiple scores
  * within one buffer).
  * If the score header is missing, default values are assumed.
- * Returns 1 on success and 0 on error.
  */
-int read_score(MBUF *b, Score *s);
+Score *score_read(MBUF *b);
 
 
 /*
  * Write a score into a buffer.
  */
-int write_score(MBUF *b, Score *s);
+int score_write(MBUF *b, Score *s);
 
 
 /*
  * Free all allocated data.
  */
-void clear_score(Score *s);
+void score_clear(Score *s);
 
 
 #endif /* __SCORE_H__ */
