@@ -1,10 +1,13 @@
 /*
- * $Id: vld.c,v 1.2 1996/04/02 10:19:57 kilian Exp $
+ * $Id: vld.c,v 1.3 1996/04/02 23:27:48 kilian Exp $
  *
  * Read variable sized quantities and data.
  *
  * $Log: vld.c,v $
- * Revision 1.2  1996/04/02 10:19:57  kilian
+ * Revision 1.3  1996/04/02 23:27:48  kilian
+ * Treat writing of out-of-range vlq's and failing allocations as fatal errors.
+ *
+ * Revision 1.2  1996/04/02  10:19:57  kilian
  * Adapted changes of the print functions.
  *
  * Revision 1.1  1996/04/01  19:11:06  kilian
@@ -66,7 +69,7 @@ int write_vlq(MBUF *b, long vlq)
 
   if(vlq < 0 || vlq > 0x0fffffff)
     {
-      midiprint(MPError, "writing vlq: out of range");
+      midiprint(MPFatal, "writing vlq: out of range");
       return 0;
     }
 
@@ -103,7 +106,7 @@ void *read_vld(MBUF *b)
 
   if(!(data = malloc(sizeof(long) + length)))
     {
-      midiprint(MPError, "%s", strerror(errno));
+      midiprint(MPFatal, "%s", strerror(errno));
       b->i = i;
       return NULL;
     }
