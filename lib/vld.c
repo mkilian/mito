@@ -1,10 +1,14 @@
 /*
- * $Id: vld.c,v 1.3 1996/04/02 23:27:48 kilian Exp $
+ * $Id: vld.c,v 1.4 1996/04/03 14:24:31 kilian Exp $
  *
  * Read variable sized quantities and data.
  *
  * $Log: vld.c,v $
- * Revision 1.3  1996/04/02 23:27:48  kilian
+ * Revision 1.4  1996/04/03 14:24:31  kilian
+ * Fixed some bugs when using mbuf_get.
+ * Made argument to vld_size and vld_data const.
+ *
+ * Revision 1.3  1996/04/02  23:27:48  kilian
  * Treat writing of out-of-range vlq's and failing allocations as fatal errors.
  *
  * Revision 1.2  1996/04/02  10:19:57  kilian
@@ -65,7 +69,8 @@ long read_vlq(MBUF *b)
  */
 int write_vlq(MBUF *b, long vlq)
 {
-  int result;
+  char buf[4];
+  int i, result;
 
   if(vlq < 0 || vlq > 0x0fffffff)
     {
@@ -73,14 +78,20 @@ int write_vlq(MBUF *b, long vlq)
       return 0;
     }
 
-  if(vlq >= 0x80 &&
-     (result = write_vlq(b, vlq >> 7)) >= 0 &&
-     mbuf_put(b, vlq & 0x7f))
-    return result + 1;
-  else if(vlq < 0x80)
-    return mbuf_put(b, vlq) ? 1 : 0;
-  else
-    return 0;
+  result = 0;
+  buf[result++] = vlq & 0x7f;
+  while(vlq > 0x7f)
+    {
+      vlq >>= 7;
+      buf[result++] = 0x80 | vlq & 0x7f;
+    }
+
+  i = result;
+  while(i-- > 0)
+    if(mbuf_put(b, buf[i]) == EOF)
+      return 0;
+
+  return result;
 }
 
 
@@ -120,33 +131,11 @@ void *read_vld(MBUF *b)
 
 
 /*
- * Write variable length data, i.e. a vlq and following data bytes.
- * The number of bytes written, or 0 on error.
- */
-long write_vld(MBUF *b, void *vld)
-{
-  long length = vld_size(vld);
-  char *data = vld_data(vld);
-  long result;
-
-  if(!(result = write_vlq(b, length)))
-    return 0;
-
-  result += length;
-  while(length-- > 0)
-    if(!mbuf_put(b, *data++))
-      return 0;
-
-  return result;
-}
-
-
-/*
  * Get the size of vld.
  */
-long vld_size(void *vld)
+long vld_size(const void *vld)
 {
-  long *size = vld;
+  const long *size = vld;
   return *size;
 }
 
@@ -154,7 +143,29 @@ long vld_size(void *vld)
 /*
  * Get the data of vld.
  */
-void *vld_data(void *vld)
+const void *vld_data(const void *vld)
 {
   return vld + sizeof(long);
+}
+
+
+/*
+ * Write variable length data, i.e. a vlq and following data bytes.
+ * The number of bytes written, or 0 on error.
+ */
+long write_vld(MBUF *b, const void *vld)
+{
+  long length = vld_size(vld);
+  const char *data = vld_data(vld);
+  long result;
+
+  if(!(result = write_vlq(b, length)))
+    return 0;
+
+  result += length;
+  while(length-- > 0)
+    if(mbuf_put(b, *data++) == EOF)
+      return 0;
+
+  return result;
 }
