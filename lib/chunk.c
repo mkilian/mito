@@ -1,10 +1,13 @@
 /*
- * $Id: chunk.c,v 1.4 1996/04/03 14:23:54 kilian Exp $
+ * $Id: chunk.c,v 1.5 1996/04/06 23:02:19 kilian Exp $
  *
  * Get header and track chunks of standard midi files.
  *
  * $Log: chunk.c,v $
- * Revision 1.4  1996/04/03 14:23:54  kilian
+ * Revision 1.5  1996/04/06 23:02:19  kilian
+ * Fix in write_MThd.
+ *
+ * Revision 1.4  1996/04/03  14:23:54  kilian
  * Added write_MThd and write_MTrk.
  *
  * Revision 1.3  1996/04/02  23:26:30  kilian
@@ -198,7 +201,7 @@ int write_MThd(MBUF *b, int fmt, int ntrk, int div)
   hdr[9] = fmt & 0xff;
   hdr[10] = (ntrk >> 8) & 0xff;
   hdr[11] = ntrk & 0xff;
-  hdr[12] = (ntrk >> 8) & 0xff;
+  hdr[12] = (div >> 8) & 0xff;
   hdr[13] = div & 0xff;
 
   for(i = 0; i < 14; i++)
