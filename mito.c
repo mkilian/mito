@@ -1,10 +1,13 @@
 /*
- * $Id: mito.c,v 1.8 1996/04/07 19:20:01 kilian Exp $
+ * $Id: mito.c,v 1.9 1996/04/07 22:19:51 kilian Exp $
  *
  * mito --- the midi tool
  *
  * $Log: mito.c,v $
- * Revision 1.8  1996/04/07 19:20:01  kilian
+ * Revision 1.9  1996/04/07 22:19:51  kilian
+ * Added debugging options.
+ *
+ * Revision 1.8  1996/04/07  19:20:01  kilian
  * Simplified mergetracks.
  *
  * Revision 1.7  1996/04/07  16:47:23  kilian
@@ -48,27 +51,25 @@
 
 static void usage(void)
 {
-  fputs("usage: mito [-hleqnm012c] [-o file] [-d div] {[file][@sl]}...\n"
-        "  overall options:\n"
+  fputs("usage: mito [-hleqnm012cCV] [-o file] [-d div] {[file][@sl]}...\n"
+        "overall options:\n"
         "    -h:  show score headers\n"
         "    -l:  show track lengths\n"
         "    -e:  show events\n"
-        "    -q:  be quiet; accumulative:\n"
-        "           1x = no warnings\n"
-        "           2x = no recoverable midi file errors\n"
-        "           3x = no errors at all\n"
+        "    -q:  accumulative(1-3): no warning, midi errors, other errors\n"
         "    -o:  write resulting output to `file'\n"
-        "  input options\n"
+        "input:\n"
         "    -m: merge all tracks of each single score\n"
         "    -f: fix nested / unmatched noteon/noteoff groups\n"
         "    @sl: syntax: [scores][.tracks]; read selection\n"
-        "         scores: range of scores to read; empty = all\n"
-        "         tracks: range of tracks to read; empty = all\n"
-        "  output options (only valid if `-o' is given)\n"
+        "output options (only valid if `-o' is given):\n"
         "    -[012]:  use this output format (default from first score)\n"
         "    -d:  use output division `div' (default from first score)\n"
         "    -n:  no header; only write the tracks\n"
-        "    -c:  concat all tracks to one\n", stderr);
+        "    -c:  concat all tracks to one\n"
+        "debugging:\n"
+        "    -C:  turn on full consistency checks\n"
+        "    -V:  turn on verbose auto-cleanup\n", stderr);
   exit(EXIT_FAILURE);
 }
 
@@ -640,7 +641,7 @@ int main(int argc, char *argv[])
   /*
    * Parse command line arguments.
    */
-  while((opt = getopt(argc, argv, ":hleqnmo:012cfd:")) != -1)
+  while((opt = getopt(argc, argv, ":hleqnmo:012cfd:CV")) != -1)
     switch(opt)
       {
         case 'h':
@@ -682,6 +683,12 @@ int main(int argc, char *argv[])
         case 'd':
           if(sscanf(optarg, "%d", &outdiv) != 1 || !outdiv)
             usage();
+          break;
+        case 'C':
+          track_debug |= TRACK_CHECK;
+          break;
+        case 'V':
+          track_debug |= TRACK_ACV;
           break;
         default:
           usage();
