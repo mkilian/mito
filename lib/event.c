@@ -1,10 +1,13 @@
 /*
- * $Id: event.c,v 1.3 1996/04/02 23:28:40 kilian Exp $
+ * $Id: event.c,v 1.4 1996/04/03 14:26:57 kilian Exp $
  *
  * Read midi file messages and events.
  *
  * $Log: event.c,v $
- * Revision 1.3  1996/04/02 23:28:40  kilian
+ * Revision 1.4  1996/04/03 14:26:57  kilian
+ * Many fixes in write_event.
+ *
+ * Revision 1.3  1996/04/02  23:28:40  kilian
  * Treat writing of unknown message types as fatal error.
  *
  * Revision 1.2  1996/04/02  10:19:57  kilian
@@ -37,7 +40,7 @@ static int convert_meta(MFMessage *msg)
 {
   void *vld = msg->meta.data;
   long length = vld_size(vld);
-  unsigned char *data = vld_data(vld);
+  const unsigned char *data = vld_data(vld);
   int result = 0;
 
   switch(msg->meta.type)
@@ -52,7 +55,7 @@ static int convert_meta(MFMessage *msg)
           midiprint(MPWarn, "sequencenumber: long data");
 
         msg->sequencenumber.type = msg->meta.type;
-        msg->sequencenumber.sequencenumber = data[0] << 7 | data[1];
+        msg->sequencenumber.sequencenumber = data[0] << 8 | data[1];
         result = 1;
         break;
       case TEXT:
@@ -165,23 +168,24 @@ static int convert_meta(MFMessage *msg)
  */
 int read_message(MBUF *b, MFMessage *msg, unsigned char *rs)
 {
-  long i = b->i;
+  long i = mbuf_pos(b);
 
-  if(b->i >= b->n)
+  if(mbuf_rem(b) <= 0)
     {
       midiprint(MPError, "reading message: end of input");
       return 0;
     }
 
-  if(((msg->generic.cmd = b->b[b->i]) & 0x80))
-    b->i++;
-  else
-    msg->generic.cmd = *rs;
+  if(!((msg->generic.cmd = mbuf_get(b)) & 0x80))
+    {
+      mbuf_set(b, i);
+      msg->generic.cmd = *rs;
+    }
 
   if(!(msg->generic.cmd & 0x80))
     {
       midiprint(MPError, "reading message: got data byte %h", msg->generic.cmd);
-      b->i = i;
+      mbuf_set(b, i);
       return 0;
     }
 
@@ -192,14 +196,14 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs)
       case NOTEON:
       case KEYPRESSURE:
       case CONTROLCHANGE:
-        if(b->i + 1 >= b->n)
+        if(mbuf_rem(b) < 2)
           {
             midiprint(MPError, "reading message: end of input");
-            b->i = i;
+            mbuf_set(b, i);
             return 0;
           }
-        msg->noteoff.note = b->b[b->i++];
-        msg->noteoff.velocity = b->b[b->i++];
+        msg->noteoff.note = mbuf_get(b);
+        msg->noteoff.velocity = mbuf_get(b);
         *rs = msg->generic.cmd;
         return 1;
         break;
@@ -207,26 +211,27 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs)
       /* One-byte messages. */
       case PROGRAMCHANGE:
       case CHANNELPRESSURE:
-        if(b->i >= b->n)
+        if(mbuf_rem(b) < 1)
           {
             midiprint(MPError, "reading message: end of input");
-            b->i = i;
+            mbuf_set(b, i);
             return 0;
           }
-        msg->programchange.program = b->b[b->i++];
+        msg->programchange.program = mbuf_get(b);
         *rs = msg->generic.cmd;
         return 1;
         break;
 
       /* This is special since it contains a 2x7bit quantity: */
       case PITCHWHEELCHANGE:
-        if(b->i + 1 >= b->n)
+        if(mbuf_rem(b) < 2)
           {
             midiprint(MPError, "reading message: end of input");
-            b->i = i;
+            mbuf_set(b, i);
             return 0;
           }
-        msg->pitchwheelchange.value = b->b[b->i++] << 7 | b->b[b->i++] - 0x2000;
+        msg->pitchwheelchange.value = mbuf_get(b) << 7 | mbuf_get(b);
+        msg->pitchwheelchange.value -= 0x2000;
         *rs = msg->generic.cmd;
         return 1;
         break;
@@ -240,31 +245,34 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs)
       case SYSTEMEXCLUSIVECONT:
         if(!(msg->systemexclusive.data = read_vld(b)))
           {
-            b->i = i;
+            mbuf_set(b, i);
             return 0;
           }
         return 1;
         break;
 
       case META:
-        /* Get the type. */
-        if(b->i >= b->n)
+        /*
+         * Get the type. There must be at least two bytes; one for the
+         * type and one for the size.
+         */
+        if(mbuf_rem(b) < 2)
           {
             midiprint(MPError, "reading message: end of input");
-            b->i = i;
+            mbuf_set(b, i);
             return 0;
           }
-        msg->meta.type = b->b[b->i++];
+        msg->meta.type = mbuf_get(b);
         /* Get the data. */
         if(!(msg->meta.data = read_vld(b)))
           {
-            b->i = i;
+            mbuf_set(b, i);
             return 0;
           }
         if(!convert_meta(msg))
           {
             free(msg->meta.data);
-            b->i = i;
+            mbuf_set(b, i);
             return 0;
           }
         return 1;
@@ -273,6 +281,7 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs)
 
   /* What's that? */
   midiprint(MPError, "unknown message type %hu", msg->generic.cmd);
+  mbuf_set(b, i);
   return 0;
 }
 
@@ -286,81 +295,104 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs)
 int write_message(MBUF *b, MFMessage *msg, unsigned char *rs)
 {
   unsigned char cmd = msg->generic.cmd;
-  unsigned long value;
+  long value;
 
-  if((!rs || *rs != cmd) && mbuf_put(b, cmd) == EOF)
-    return 0;
-
-  if(cmd & 0x80 && !(cmd & 0xf0))
-    *rs = cmd;
-
-  switch(cmd & 0xf0)
+  if(cmd >= 0xf0)
     {
-      case NOTEOFF:
-      case NOTEON:
-      case KEYPRESSURE:
-      case CONTROLCHANGE:
-        return mbuf_put(b, msg->noteoff.note) != EOF &&
-               mbuf_put(b, msg->noteoff.velocity) != EOF;
-      case PROGRAMCHANGE:
-      case CHANNELPRESSURE:
-        return mbuf_put(b, msg->programchange.program) != EOF;
-      case PITCHWHEELCHANGE:
-        value = msg->pitchwheelchange.value + 0x2000;
-        return mbuf_put(b, (value >> 7) & 0x7f) &&
-               mbuf_put(b, value & 0x7f);
+      /* This is a system common message. */
+      if(mbuf_put(b, cmd) == EOF)
+        return 0;
+
+      switch(cmd)
+        {
+          case SYSTEMEXCLUSIVE:
+          case SYSTEMEXCLUSIVECONT:
+            return write_vld(b, msg->systemexclusive.data);
+          case META:
+            return mbuf_put(b, msg->meta.type) != EOF &&
+                   write_vld(b, msg->meta.data);
+        }
     }
-
-  switch(cmd)
+  else if(cmd >= 0x80)
     {
-      case SYSTEMEXCLUSIVE:
-      case SYSTEMEXCLUSIVECONT:
-        return write_vld(b, msg->systemexclusive.data);
-      case META:
-        return mbuf_put(b, msg->meta.type) != EOF &&
-               write_vld(b, msg->meta.data);
+      /* This is a channel voice message. */
+      /*
+       * Write the command if no running status exists or differs from
+       * the command.
+       */
+      if(!(rs && *rs == cmd) && mbuf_put(b, cmd) == EOF)
+        return 0;
+
+      /* Update the running status. */
+      if(rs)
+        *rs = cmd;
+
+      switch(cmd & 0xf0)
+        {
+          case NOTEOFF:
+          case NOTEON:
+          case KEYPRESSURE:
+          case CONTROLCHANGE:
+            return mbuf_put(b, msg->noteoff.note) != EOF &&
+                   mbuf_put(b, msg->noteoff.velocity) != EOF;
+          case PROGRAMCHANGE:
+          case CHANNELPRESSURE:
+            return mbuf_put(b, msg->programchange.program) != EOF;
+          case PITCHWHEELCHANGE:
+            value = msg->pitchwheelchange.value + 0x2000;
+            return mbuf_put(b, (value >> 7) & 0x7f) != EOF &&
+                   mbuf_put(b, value & 0x7f) != EOF ;
+        }
     }
-
-  /* This MUST be a meta message, so we write the META byte. */
-  if(mbuf_put(b, META) == EOF)
-    return 0;
-
-  switch(cmd)
+  else
     {
-      case SEQUENCENUMBER:
-        value = msg->sequencenumber.sequencenumber;
-        return mbuf_put(b, (value >> 7) & 0x7f) != EOF &&
-               mbuf_put(b, value & 0x7f) != EOF;
-      case TEXT:
-      case COPYRIGHTNOTICE:
-      case TRACKNAME:
-      case INSTRUMENTNAME:
-      case LYRIC:
-      case MARKER:
-      case CUEPOINT:
-        return write_vld(b, msg->text.text);
-      case ENDOFTRACK:
-        return 1;
-      case SETTEMPO:
-        value = msg->settempo.tempo;
-        return mbuf_put(b, (value >> 7) & 0x7f) != EOF &&
-               mbuf_put(b, value & 0x7f);
-      case SMPTEOFFSET:
-        return mbuf_put(b, msg->smpteoffset.hours) != EOF &&
-               mbuf_put(b, msg->smpteoffset.minutes) != EOF &&
-               mbuf_put(b, msg->smpteoffset.seconds) != EOF &&
-               mbuf_put(b, msg->smpteoffset.frames) != EOF &&
-               mbuf_put(b, msg->smpteoffset.subframes) != EOF;
-      case TIMESIGNATURE:
-        return mbuf_put(b, msg->timesignature.nominator) != EOF &&
-               mbuf_put(b, msg->timesignature.denominator) != EOF &&
-               mbuf_put(b, msg->timesignature.clocksperclick) != EOF &&
-               mbuf_put(b, msg->timesignature.ttperquarter) != EOF;
-      case KEYSIGNATURE:
-        return mbuf_put(b, msg->keysignature.sharpsflats) != EOF &&
-               mbuf_put(b, msg->keysignature.minor) != EOF;
-      case SEQUENCERSPECIFIC:
-        return write_vld(b, msg->sequencerspecific.data);
+      /* This is a meta message. */
+      if(mbuf_put(b, META) == EOF || mbuf_put(b, cmd) == EOF)
+        return 0;
+
+      switch(cmd)
+        {
+          case SEQUENCENUMBER:
+            value = msg->sequencenumber.sequencenumber;
+            return write_vlq(b, 2) &&
+                   mbuf_put(b, (value >> 8) & 0xff) != EOF &&
+                   mbuf_put(b, value & 0xff) != EOF;
+          case TEXT:
+          case COPYRIGHTNOTICE:
+          case TRACKNAME:
+          case INSTRUMENTNAME:
+          case LYRIC:
+          case MARKER:
+          case CUEPOINT:
+            return write_vld(b, msg->text.text);
+          case ENDOFTRACK:
+            return write_vlq(b, 0);
+          case SETTEMPO:
+            value = msg->settempo.tempo;
+            return write_vlq(b, 3) &&
+                   mbuf_put(b, (value >> 16) & 0xff) != EOF &&
+                   mbuf_put(b, (value >> 8) & 0xff) != EOF &&
+                   mbuf_put(b, value & 0xff) != EOF;
+          case SMPTEOFFSET:
+            return write_vlq(b, 5) &&
+                   mbuf_put(b, msg->smpteoffset.hours) != EOF &&
+                   mbuf_put(b, msg->smpteoffset.minutes) != EOF &&
+                   mbuf_put(b, msg->smpteoffset.seconds) != EOF &&
+                   mbuf_put(b, msg->smpteoffset.frames) != EOF &&
+                   mbuf_put(b, msg->smpteoffset.subframes) != EOF;
+          case TIMESIGNATURE:
+            return write_vlq(b, 4) &&
+                   mbuf_put(b, msg->timesignature.nominator) != EOF &&
+                   mbuf_put(b, msg->timesignature.denominator) != EOF &&
+                   mbuf_put(b, msg->timesignature.clocksperclick) != EOF &&
+                   mbuf_put(b, msg->timesignature.ttperquarter) != EOF;
+          case KEYSIGNATURE:
+            return write_vlq(b, 2) &&
+                   mbuf_put(b, msg->keysignature.sharpsflats) != EOF &&
+                   mbuf_put(b, msg->keysignature.minor) != EOF;
+          case SEQUENCERSPECIFIC:
+            return write_vld(b, msg->sequencerspecific.data);
+        }
     }
 
   /* This should never happen! */
