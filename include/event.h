@@ -1,9 +1,12 @@
 /*
- * $Id: event.h,v 1.4 1996/04/30 14:21:32 kilian Exp $
+ * $Id: event.h,v 1.5 1996/05/20 17:44:49 kilian Exp $
  *
  * Read midi file messages and events.
  *
  * $Log: event.h,v $
+ * Revision 1.5  1996/05/20 17:44:49  kilian
+ * Added PortNumber meta message.
+ *
  * Revision 1.4  1996/04/30 14:21:32  kilian
  * Started to support note events with durations.
  *
@@ -59,6 +62,7 @@ typedef enum {
   LYRIC             = 0x05,
   MARKER            = 0x06,
   CUEPOINT          = 0x07,
+  PORTNUMBER        = 0x21,
   ENDOFTRACK        = 0x2f,
   SETTEMPO          = 0x51,
   SMPTEOFFSET       = 0x54,
@@ -203,6 +207,11 @@ typedef struct {
 
 typedef struct {
   unsigned char type;
+  unsigned char port;
+} MFPortNumber;
+
+typedef struct {
+  unsigned char type;
 } MFEndOfTrack;
 
 typedef struct {
@@ -277,6 +286,7 @@ typedef union {
   MFLyric               lyric;
   MFMarker              marker;
   MFCuePoint            cuepoint;
+  MFPortNumber          portnumber;
   MFEndOfTrack          endoftrack;
   MFSetTempo            settempo;
   MFSMPTEOffset         smpteoffset;

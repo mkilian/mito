@@ -1,9 +1,12 @@
 /*
- * $Id: event.c,v 1.7 1996/04/30 14:21:32 kilian Exp $
+ * $Id: event.c,v 1.8 1996/05/20 17:44:49 kilian Exp $
  *
  * Read midi file messages and events.
  *
  * $Log: event.c,v $
+ * Revision 1.8  1996/05/20 17:44:49  kilian
+ * Added PortNumber meta message.
+ *
  * Revision 1.7  1996/04/30 14:21:32  kilian
  * Started to support note events with durations.
  *
@@ -79,6 +82,13 @@ static int convert_meta(MFMessage *msg)
         vld = NULL;
         result = 1;
         break;
+      case PORTNUMBER:
+        if(length > 1)
+          midiprint(MPWarn, "portnumber: long data");
+        msg->portnumber.type = msg->meta.type;
+        msg->portnumber.port = data[0];
+        result = 1;
+        break;
       case ENDOFTRACK:
         if(length > 0)
           midiprint(MPWarn, "end of track: long data");
@@ -149,12 +159,12 @@ static int convert_meta(MFMessage *msg)
       case SEQUENCERSPECIFIC:
         msg->sequencerspecific.type = msg->meta.type;
         msg->sequencerspecific.data = vld;
-        vld = 0;
+        vld = NULL;
         result = 1;
         break;
       default:
         midiprint(MPWarn, "unknown meta type %hd", msg->meta.type);
-        vld = 0;
+        vld = NULL;
         result = 1;
         break;
     }
@@ -420,6 +430,9 @@ int write_message(MBUF *b, MFMessage *msg, unsigned char *rs)
           case MARKER:
           case CUEPOINT:
             return write_vld(b, msg->text.text);
+          case PORTNUMBER:
+            return write_vlq(b, 1) &&
+                   mbuf_put(b, msg->portnumber.port) != EOF;
           case ENDOFTRACK:
             return write_vlq(b, 0);
           case SETTEMPO:
