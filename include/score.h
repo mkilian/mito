@@ -1,9 +1,12 @@
 /*
- * $Id: score.h,v 1.5 1996/04/07 16:45:15 kilian Exp $
+ * $Id: score.h,v 1.6 1996/05/20 17:46:07 kilian Exp $
  *
  * Reading and writing of complete scores.
  *
  * $Log: score.h,v $
+ * Revision 1.6  1996/05/20 17:46:07  kilian
+ * Changes due to new track structure/functions.
+ *
  * Revision 1.5  1996/04/07 16:45:15  kilian
  * Added maxdescs and maxempty parameters to score_new and score_read.
  *
@@ -38,21 +41,13 @@ typedef struct {
   int ntrk;
   int div;
   Track **tracks;
-  unsigned long maxdescs;
-  unsigned long maxempty;
 } Score;
 
 
 /*
  * Create a new score.
- * If `maxdesc' is nonzero, the track will be compressed whenever the
- * number of link-events reaches `maxdescs / 10000' times the number of
- * total events within the track. The same holds for `maxempty', which
- * specifies the maximum relative number of empty (deleted) events
- * before auto-compression. A reasonable value for both parameters may
- * be 1000, i.e. 10% of total events.
  */
-Score *score_new(unsigned long maxdescs, unsigned long maxempty);
+Score *score_new(void);
 
 
 /*
@@ -65,10 +60,9 @@ int score_add(Score *s);
 /*
  * Read the next score from a buffer (there may be multiple scores
  * within one buffer).
- * The meaning of `maxdescs' and `maxempty' is the same as in `score_new'.
  * If the score header is missing, default values are assumed.
  */
-Score *score_read(MBUF *b, unsigned long maxdescs, unsigned long maxempty);
+Score *score_read(MBUF *b);
 
 
 /*

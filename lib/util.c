@@ -1,9 +1,12 @@
 /*
- * $Id: util.c,v 1.1 1996/05/20 04:29:46 kilian Exp $
+ * $Id: util.c,v 1.2 1996/05/20 17:46:07 kilian Exp $
  *
  * Utility functions for midilib.
  *
  * $Log: util.c,v $
+ * Revision 1.2  1996/05/20 17:46:07  kilian
+ * Changes due to new track structure/functions.
+ *
  * Revision 1.1  1996/05/20 04:29:46  kilian
  * Initial revision
  *
@@ -24,24 +27,20 @@
 static MFEvent *findNoteOn(Track *t, unsigned char channel, unsigned char note)
 {
   MFEvent *e;
-  long n = 1;
+  TrackPos p;
 
-  /* Not changing the current position is not possible, so we count the
-   * steps we go backwards and step forward such many times after we
-   * have found the matching event or have reached EOT. Maybe I should
-   * implement something like iterators for tracks or something like a
-   * position data type...
-   */
+  p = track_getpos(t);
+
+  /* Search the matching event. */
   while((e = track_step(t, 1)) != NULL &&
         !(e->msg.noteon.chn == channel &&
           e->msg.noteon.note == note &&
           e->msg.noteon.velocity != 0 &&
           e->msg.noteon.duration == 0))
-    n++;
+    ; /* SKIP */
 
   /* Restore the old position. */
-  while(n--)
-    track_step(t, 0);
+  track_setpos(t, p);
 
   if(e->msg.noteon.chn != channel ||
      e->msg.noteon.note != note ||
@@ -77,7 +76,7 @@ int pairNotes(Track *t)
 
   track_rewind(t);
   while((e = track_step(t, 0)) != NULL)
-    switch(e->msg.generic.cmd)
+    switch(e->msg.generic.cmd & 0xf0)
       {
         case NOTEON:
           if(e->msg.noteon.duration != 0 || e->msg.noteon.velocity != 0)
@@ -98,6 +97,7 @@ int pairNotes(Track *t)
               n->msg.noteon.duration = e->time - n->time;
               n->msg.noteon.release = e->msg.noteon.velocity;
               track_delete(t);
+              track_step(t, 1);
               non--;
             }
           break;
@@ -118,33 +118,48 @@ int pairNotes(Track *t)
  */
 int unpairNotes(Track *t)
 {
-  MFEvent *e, _o, *o = &_o;
+  Track *tt;
+  MFEvent *e;
   long n = 0;
 
-  /* Since insertion of events changes the current position, we do the
-   * conversion backwards.
-   * Another reason to introduce a position type!
-   */
+  /* The temporary track tt holds all NoteOff events to be inserted. */
+  if(!(tt = track_new()))
+    {
+      perror("unpair");
+      exit(EXIT_FAILURE);
+    }
+
   track_rewind(t);
 
-  while((e = track_step(t, 1)) != NULL)
-    if(e->msg.generic.cmd == NOTEON &&
+  while((e = track_step(t, 0)) != NULL)
+    if((e->msg.generic.cmd & 0xf0) == NOTEON &&
        e->msg.noteon.duration != 0)
       {
+        MFEvent _o, *o = &_o;
         o->time = e->time + e->msg.noteon.duration;
-        o->msg.noteoff.cmd = NOTEOFF;
+        o->msg.generic.cmd = NOTEOFF;
         o->msg.noteoff.chn = e->msg.noteon.chn;
         o->msg.noteoff.note = e->msg.noteon.note;
         o->msg.noteoff.velocity = e->msg.noteon.release;
-        if(!track_insert(t, o))
+        e->msg.noteon.duration = 0;
+        e->msg.noteon.release = 0;
+        if(!track_insert(tt, o))
           {
             perror("unpair");
             exit(EXIT_FAILURE);
           }
-        e->msg.noteon.duration = 0;
-        e->msg.noteon.release = 0;
         n++;
       }
+
+  track_rewind(tt);
+  while((e = track_step(tt, 0)) != NULL)
+    if(!track_insert(t, e))
+      {
+        perror("unpair");
+        exit(EXIT_FAILURE);
+      }
+
+  track_clear(tt);
 
   return n;
 }
