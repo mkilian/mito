@@ -1,10 +1,13 @@
 /*
- * $Id: event.h,v 1.2 1996/04/02 23:23:12 kilian Exp $
+ * $Id: event.h,v 1.3 1996/04/06 23:00:10 kilian Exp $
  *
  * Read midi file messages and events.
  *
  * $Log: event.h,v $
- * Revision 1.2  1996/04/02 23:23:12  kilian
+ * Revision 1.3  1996/04/06 23:00:10  kilian
+ * Added new internal message types `link', `empty' and `warning'.
+ *
+ * Revision 1.2  1996/04/02  23:23:12  kilian
  * Fix: command and channel nibble swapped in channel voice messages.
  *
  * Revision 1.1  1996/04/01  19:10:57  kilian
@@ -58,7 +61,12 @@ typedef enum {
   SMPTEOFFSET       = 0x54,
   TIMESIGNATURE     = 0x58,
   KEYSIGNATURE      = 0x59,
-  SEQUENCERSPECIFIC = 0x7f
+  SEQUENCERSPECIFIC = 0x7f,
+
+  /* Internal messages. */
+  LINK              = 0x70,
+  EMPTY             = 0x71,
+  WARNING           = 0x72
 } MFMetaType;
 
 
@@ -214,6 +222,24 @@ typedef struct {
 } MFSequencerSpecific;
 
 
+/*
+ * Internal messages. These should never be seen by the application.
+ */
+typedef struct {
+  unsigned char type;
+  void *subtrack;
+} MFLink;
+
+typedef struct {
+  unsigned char type;
+} MFEmpty;
+
+typedef struct {
+  unsigned char type;
+  unsigned char code;
+  void *text;
+} MFWarning;
+
 
 /*
  * Now comes the big message union.
@@ -246,6 +272,9 @@ typedef union {
   MFTimeSignature       timesignature;
   MFKeySignature        keysignature;
   MFSequencerSpecific   sequencerspecific;
+  MFLink                link;
+  MFEmpty               empty;
+  MFWarning             warning;
 } MFMessage;
 
 
