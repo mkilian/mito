@@ -1,5 +1,5 @@
 ########################################################################
-# $Id: Rules,v 1.8 2000/01/13 22:30:56 kili Exp $
+# $Id: Rules,v 1.9 2000/01/13 22:39:26 kili Exp $
 #
 # Make variables and rules common for all subdirectories.
 # This file should be included by all makefiles, e.g. by a line
@@ -8,6 +8,9 @@
 # for it's own directory.
 #
 # $Log: Rules,v $
+# Revision 1.9  2000/01/13 22:39:26  kili
+# Switched to optimizing.
+#
 # Revision 1.8  2000/01/13 22:30:56  kili
 # Fixed recursive rule.
 #
@@ -51,8 +54,8 @@ CC        = gcc
 # Optimization and or debugging flags for compiler and linker.
 # To override flags on the commandline, use these rather than `CFLAGS'
 # and `LDFLAGS'.
-COPTS     = -Wall -Wno-parentheses -g
-LDOPTS    = -g
+COPTS     = -Wall -O6
+LDOPTS    = -s
 
 # Compiler and linker flags.
 CFLAGS    = $(COPTS) $(INCPATH)
