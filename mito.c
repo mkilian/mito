@@ -1,10 +1,13 @@
 /*
- * $Id: mito.c,v 1.1 1996/04/01 19:10:51 kilian Exp $
+ * $Id: mito.c,v 1.2 1996/04/02 10:16:36 kilian Exp $
  *
  * mito --- the midi tool
  *
  * $Log: mito.c,v $
- * Revision 1.1  1996/04/01 19:10:51  kilian
+ * Revision 1.2  1996/04/02 10:16:36  kilian
+ * Lots of changes...
+ *
+ * Revision 1.1  1996/04/01  19:10:51  kilian
  * Initial revision
  *
  */
@@ -39,7 +42,6 @@ static void usage(void)
 #define SHOWDIVISION 0x04
 #define SHOWTLENGTHS 0x08
 #define SHOWEVENTS 0x10
-#define QUIET 0x80
 
 
 /*
@@ -48,78 +50,62 @@ static void usage(void)
 static char *warnname = NULL;
 
 
-/*
- * The current buffer position. Used for warning and error messages, if
- * not negative.
- */
-static long warnpos = -1;
+static int quiet = 0;
 
 
 /*
  * Warning and error printing hook.
  */
-static void warn(const char *fmt, va_list args)
+static void print(MPLevel level, const char *fmt, va_list args)
 {
-  if(warnname)
-    fprintf(stderr, "%s: ", warnname);
-  if(warnpos >= 0)
-    fprintf(stderr, "at %lu: ", warnpos);
-
-  vfprintf(stderr, fmt, args);
-  fputc('\n', stderr);
-}
-
-
-/*
- * Normal printing hook.
- */
-static void print(const char *fmt, va_list args)
-{
-  vprintf(fmt, args);
-  putchar('\n');
-}
-
-
-/*
- * Print out all events of `b'.
- */
-static void printevents(MBUF *b)
-{
-  char running = 0;
-  long basepos = warnpos;
-
-  while(mbuf_rem(b) > 0)
+  if(level == MPNote)
     {
-      long delta;
-      MFMessage e;
-      char *cmd = NULL;
+      vprintf(fmt, args);
+      putchar('\n');
+      fflush(stdout);
+    }
+  else if(!quiet || level == MPFatal)
+    {
+      if(warnname)
+        fprintf(stderr, "%s: ", warnname);
 
-      warnpos = basepos + mbuf_pos(b);
-      if((delta = read_vlq(b)) < 0)
-        {
-          mbuf_get(b);
-          continue;
-        }
-      warnpos = basepos + mbuf_pos(b);
-      if(!read_message(b, &e, &running))
-        {
-          mbuf_get(b);
-          continue;
-        }
+      vfprintf(stderr, fmt, args);
+      fputc('\n', stderr);
+      fflush(stderr);
+    }
+}
 
-      switch(e.generic.cmd & 0xf0)
-        {
-          case NOTEOFF:           cmd = "Note Off"; break;
-          case NOTEON:            cmd = "Note On"; break;
-          case KEYPRESSURE:       cmd = "Key Pressure"; break;
-          case CONTROLCHANGE:     cmd = "Control Change"; break;
-          case PROGRAMCHANGE:     cmd = "Program Change"; break;
-          case CHANNELPRESSURE:   cmd = "Channel Pressure"; break;
-          case PITCHWHEELCHANGE:  cmd = "Pitch Wheel Change"; break;
-        }
 
-      if(!cmd)
-        switch(e.generic.cmd)
+/*
+ * Print the track data of `s'.
+ */
+static void showtracks(Score *s, int flags)
+{
+  long n;
+
+  if(flags & SHOWTLENGTHS)
+    for(n = 0; n < s->ntrk; n++)
+      {
+        long next = (n < s->ntrk - 1) ? s->tracks[n + 1] : s->nev;
+        midiprint(MPNote, "      #E %6lu", next - s->tracks[n]);
+      }
+
+  if(flags & SHOWEVENTS)
+    for(n = 0; n < s->nev; n++)
+      {
+        char *cmd = NULL;
+        switch(s->events[n].msg.generic.cmd & 0xf0)
+          {
+            case NOTEOFF:           cmd = "Note Off"; break;
+            case NOTEON:            cmd = "Note On"; break;
+            case KEYPRESSURE:       cmd = "Key Pressure"; break;
+            case CONTROLCHANGE:     cmd = "Control Change"; break;
+            case PROGRAMCHANGE:     cmd = "Program Change"; break;
+            case CHANNELPRESSURE:   cmd = "Channel Pressure"; break;
+            case PITCHWHEELCHANGE:  cmd = "Pitch Wheel Change"; break;
+          }
+
+        switch(s->events[n].msg.generic.cmd)
           {
             case SYSTEMEXCLUSIVE:     cmd = "System Exclusive"; break;
             case SYSTEMEXCLUSIVECONT: cmd = "System Exclusive Cont"; break;
@@ -140,12 +126,9 @@ static void printevents(MBUF *b)
             case SEQUENCERSPECIFIC:   cmd = "Sequencer Specific"; break;
           }
 
-      if(!cmd)
-        cmd = "Unknown";
-
-      clear_message(&e);
-      midiprint("%8ld %s", delta, cmd);
-    }
+        if(!cmd) cmd = "Unknown";
+        midiprint(MPNote, "%8ld %s", s->events[n].time, cmd);
+      }
 }
 
 
@@ -154,11 +137,9 @@ static int dofile(const char *name, int flags)
   FILE *f = stdin;
   static char _name[FILENAME_MAX];
   MBUF b;
-  int tracks = 0, hdrs = 0, totaltracks = 0, error = 0;
-  long skip, expect = 0;
-  CHUNK chunk;
-
-  warnpos = -1;
+  Score s;
+  int scorenum = 1;
+  static char out[64];
 
   if(!(flags & (SHOWFORMAT | SHOWNTRACKS | SHOWDIVISION |
                 SHOWTLENGTHS | SHOWEVENTS)))
@@ -166,7 +147,7 @@ static int dofile(const char *name, int flags)
 
   if(!name || !strcmp(name, "-"))
     {
-      warnname = "standard input";
+      warnname = "{stdin}";
       name = NULL;
     }
   else
@@ -177,12 +158,9 @@ static int dofile(const char *name, int flags)
 
   midiprint_hook = print;
 
-  if(!(flags & QUIET))
-    midiwarn_hook = midierror_hook = warn;
-
   if(name && !(f = fopen(name, "rb")))
     {
-      midierror("%s", strerror(errno));
+      midiprint(MPError, "%s", strerror(errno));
       return 1;
     }
 
@@ -194,91 +172,47 @@ static int dofile(const char *name, int flags)
 
   fclose(f);
 
-  warnpos = 0;
-  while(!error && (skip = search_chunk(&b, &chunk, 0)) >= 0)
+  if(!read_score(&b, &s))
     {
-      warnpos = mbuf_pos(&b);
-
-      if(skip > expect)
-        midierror("%lu bytes skipped", skip - expect);
-      if(skip < expect)
-        midierror("%lu bytes lost", expect - skip);
-
-      if(chunk.type == MThd)
-        {
-          if(tracks > 0)
-            midierror("%d tracks missing", tracks);
-
-          if(chunk.hdr.mthd.xsize)
-            midiwarn("%ld extra bytes in header", chunk.hdr.mthd.xsize);
-
-          if(flags & SHOWFORMAT)
-            midiprint("%7d ", chunk.hdr.mthd.fmt);
-          if(flags & SHOWNTRACKS)
-            midiprint("%7d ", chunk.hdr.mthd.ntrk);
-          if(flags & SHOWDIVISION)
-            midiprint("%7d ", chunk.hdr.mthd.div);
-
-          if(hdrs++)
-            midiprint("STILL %s", warnname);
-          else
-            midiprint("%s", warnname);
-
-          expect = 0;
-          tracks = chunk.hdr.mthd.ntrk;
-        }
-      else if(chunk.type == MTrk)
-        {
-          MBUF t;
-
-          if(!hdrs)
-            midierror("missing header");
-          else if(!tracks)
-            midiwarn("extraneous tracks");
-
-          if(flags & SHOWTLENGTHS)
-            midiprint("      T %7lu", chunk.hdr.mtrk.size);
-
-          expect = chunk.hdr.mtrk.size;
-          tracks--;
-          totaltracks++;
-
-          if(flags & SHOWEVENTS)
-            {
-              t.n = chunk.hdr.mtrk.size;
-              t.i = 0;
-              t.b = b.b + b.i;
-              warnpos = mbuf_pos(&b);
-              printevents(&t);
-            }
-        }
-      else
-        error = 1;
+      midiprint(MPError, "no headers or tracks found");
+      return 1;
     }
 
-  warnpos = mbuf_pos(&b);
+  *out = 0;
+  if(flags & SHOWFORMAT)
+    sprintf(out, " %7d", s.fmt);
+  if(flags & SHOWNTRACKS)
+    sprintf(out + strlen(out), " %7d", s.ntrk);
+  if(flags & SHOWDIVISION)
+    sprintf(out + strlen(out), " %7d", s.div);
+  midiprint(MPNote, "%s:%s", warnname, out);
 
-  if(!error && b.i < b.n)
-    midiwarn("garbage at end");
+  showtracks(&s, flags);
 
-  if(!error && !totaltracks && !hdrs)
+  clear_score(&s);
+
+  while(mbuf_rem(&b) > 0 && read_score(&b, &s))
     {
-      error = 1;
-      midiwarn("no headers or tracks found");
+      *out = 0;
+      if(flags & SHOWFORMAT)
+        sprintf(out, " %7d", s.fmt);
+      if(flags & SHOWNTRACKS)
+        sprintf(out + strlen(out), " %7d", s.ntrk);
+      if(flags & SHOWDIVISION)
+        sprintf(out + strlen(out), " %7d", s.div);
+      midiprint(MPNote, "%s(%d):%s", warnname, ++scorenum, out);
+
+      showtracks(&s, flags);
+
+      clear_score(&s);
     }
 
-  if(!error && !totaltracks)
-    midiwarn("no tracks");
+  if(mbuf_rem(&b) > 0)
+    midiprint(MPWarn, "garbage at end of input");
 
-  if(!error && tracks > 0)
-    midiwarn("%d tracks missing", tracks);
+  mbuf_free(&b);
 
-  free(b.b);
-
-  if(error)
-    return 1;
-  else
-    return 0;
+  return 0;
 }
 
 
@@ -287,9 +221,6 @@ int main(int argc, char *argv[])
   int opt;
   int error = 0;
   int flags = 0;
-
-  setbuf(stdout, NULL);
-  setbuf(stderr, NULL);
 
   /*
    * Parse command line arguments.
@@ -310,7 +241,7 @@ int main(int argc, char *argv[])
           flags |= SHOWNTRACKS;
           break;
         case 'q':
-          flags |= QUIET;
+          quiet++;
           break;
         case 't':
           flags |= SHOWTLENGTHS;
