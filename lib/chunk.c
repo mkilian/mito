@@ -1,10 +1,13 @@
 /*
- * $Id: chunk.c,v 1.1 1996/04/01 19:11:06 kilian Exp $
+ * $Id: chunk.c,v 1.2 1996/04/02 10:19:57 kilian Exp $
  *
  * Get header and track chunks of standard midi files.
  *
  * $Log: chunk.c,v $
- * Revision 1.1  1996/04/01 19:11:06  kilian
+ * Revision 1.2  1996/04/02 10:19:57  kilian
+ * Adapted changes of the print functions.
+ *
+ * Revision 1.1  1996/04/01  19:11:06  kilian
  * Initial revision
  *
  */
@@ -47,35 +50,35 @@ static int tryMThd(MBUF *b, CHUNK *c)
 
   if(size < 6)
     {
-      midierror("skipping header: size too short");
+      midiprint(MPError, "skipping header: size too short");
       return 0;
     }
   if(size > 6)
-    midiwarn("unusual long header: %ld bytes", size);
+    midiprint(MPWarn, "unusual long header: %ld bytes", size);
   if(i + 6 >= n)
     {
-      midierror("skipping header: truncated header at end of file");
+      midiprint(MPError, "skipping header: truncated header at end of file");
       return 0;
     }
   if(i + size >= n)
-    midiwarn("truncated but usable header at end of file");
+    midiprint(MPWarn, "truncated but usable header at end of file");
 
   fmt = ptr[8] << 8 | ptr[9];
   ntrk = ptr[10] << 8 | ptr[11];
   div = ptr[12] << 8 | ptr[13];
   if(fmt < 0 || fmt > 2)
     {
-      midierror("skipping header: illegal format %d", fmt);
+      midiprint(MPError, "skipping header: illegal format %d", fmt);
       return 0;
     }
   if(ntrk < 0)
     {
-      midierror("skipping header: number of tracks %d", ntrk);
+      midiprint(MPError, "skipping header: number of tracks %d", ntrk);
       return 0;
     }
   if(!div)
     {
-      midierror("skipping header: division is 0");
+      midiprint(MPError, "skipping header: division is 0");
       return 0;
     }
 
@@ -108,11 +111,11 @@ static int tryMTrk(MBUF *b, CHUNK *c, long mtl)
 
   if(size < 0)
     {
-      midierror("skipping track: negative size %ld", size);
+      midiprint(MPError, "skipping track: negative size %ld", size);
       return 0;
     }
   if(mtl > 0 && size > mtl)
-    midierror("skipping track: track of %ld bytes too large", size);
+    midiprint(MPError, "skipping track: track of %ld bytes too large", size);
 
   b->i += 8;
   c->type = MTrk;
@@ -165,7 +168,7 @@ long search_chunk(MBUF *b, CHUNK *chunk, unsigned long mtl)
     return b->i - i - 8;
   else
     {
-      midierror("no type; this can't happen");
+      midiprint(MPError, "no type; this can't happen");
       return -1;
     }
 }

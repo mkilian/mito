@@ -1,10 +1,13 @@
 /*
- * $Id: event.c,v 1.1 1996/04/01 19:11:06 kilian Exp $
+ * $Id: event.c,v 1.2 1996/04/02 10:19:57 kilian Exp $
  *
  * Read midi file messages and events.
  *
  * $Log: event.c,v $
- * Revision 1.1  1996/04/01 19:11:06  kilian
+ * Revision 1.2  1996/04/02 10:19:57  kilian
+ * Adapted changes of the print functions.
+ *
+ * Revision 1.1  1996/04/01  19:11:06  kilian
  * Initial revision
  *
  */
@@ -39,11 +42,11 @@ static int convert_meta(MFMessage *msg)
       case SEQUENCENUMBER:
         if(length < 2)
           {
-            midierror("sequencenumber: too short data");
+            midiprint(MPError, "sequencenumber: too short data");
             break;
           }
         if(length > 2)
-          midiwarn("sequencenumber: long data");
+          midiprint(MPWarn, "sequencenumber: long data");
 
         msg->sequencenumber.type = msg->meta.type;
         msg->sequencenumber.sequencenumber = data[0] << 7 | data[1];
@@ -63,7 +66,7 @@ static int convert_meta(MFMessage *msg)
         break;
       case ENDOFTRACK:
         if(length > 0)
-          midiwarn("end of track: long data");
+          midiprint(MPWarn, "end of track: long data");
 
         msg->endoftrack.type = msg->meta.type;
         result = 1;
@@ -71,11 +74,11 @@ static int convert_meta(MFMessage *msg)
       case SETTEMPO:
         if(length < 3)
           {
-            midierror("set tempo: too short data");
+            midiprint(MPError, "set tempo: too short data");
             break;
           }
         if(length > 3)
-          midiwarn("set tempo: long data");
+          midiprint(MPWarn, "set tempo: long data");
 
         msg->settempo.type = msg->meta.type;
         msg->settempo.tempo = data[0] << 16 | data[1] << 8 | data[2];
@@ -84,11 +87,11 @@ static int convert_meta(MFMessage *msg)
       case SMPTEOFFSET:
         if(length < 5)
           {
-            midierror("SMPTE offset: too short data");
+            midiprint(MPError, "SMPTE offset: too short data");
             break;
           }
         if(length > 5)
-          midiwarn("SMPTE offset: long data");
+          midiprint(MPWarn, "SMPTE offset: long data");
 
         msg->smpteoffset.type = msg->meta.type;
         msg->smpteoffset.hours = data[0];
@@ -101,11 +104,11 @@ static int convert_meta(MFMessage *msg)
       case TIMESIGNATURE:
         if(length < 4)
           {
-            midierror("time signature: too short data");
+            midiprint(MPError, "time signature: too short data");
             break;
           }
         if(length > 4)
-          midiwarn("time signature: long data");
+          midiprint(MPWarn, "time signature: long data");
 
         msg->timesignature.type = msg->meta.type;
         msg->timesignature.nominator = data[0];
@@ -117,11 +120,11 @@ static int convert_meta(MFMessage *msg)
       case KEYSIGNATURE:
         if(length < 2)
           {
-            midierror("key signature: too short data");
+            midiprint(MPError, "key signature: too short data");
             break;
           }
         if(length > 2)
-          midiwarn("key signature: long data");
+          midiprint(MPWarn, "key signature: long data");
 
         msg->keysignature.type = msg->meta.type;
         msg->keysignature.sharpsflats = data[0];
@@ -135,7 +138,7 @@ static int convert_meta(MFMessage *msg)
         result = 1;
         break;
       default:
-        midiwarn("unknown meta type %hd", msg->meta.type);
+        midiprint(MPWarn, "unknown meta type %hd", msg->meta.type);
         vld = 0;
         result = 1;
         break;
@@ -163,7 +166,7 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs)
 
   if(b->i >= b->n)
     {
-      midierror("reading message: end of input");
+      midiprint(MPError, "reading message: end of input");
       return 0;
     }
 
@@ -174,7 +177,7 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs)
 
   if(!(msg->generic.cmd & 0x80))
     {
-      midierror("reading message: got data byte %h", msg->generic.cmd);
+      midiprint(MPError, "reading message: got data byte %h", msg->generic.cmd);
       b->i = i;
       return 0;
     }
@@ -188,7 +191,7 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs)
       case CONTROLCHANGE:
         if(b->i + 1 >= b->n)
           {
-            midierror("reading message: end of input");
+            midiprint(MPError, "reading message: end of input");
             b->i = i;
             return 0;
           }
@@ -203,7 +206,7 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs)
       case CHANNELPRESSURE:
         if(b->i >= b->n)
           {
-            midierror("reading message: end of input");
+            midiprint(MPError, "reading message: end of input");
             b->i = i;
             return 0;
           }
@@ -216,7 +219,7 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs)
       case PITCHWHEELCHANGE:
         if(b->i + 1 >= b->n)
           {
-            midierror("reading message: end of input");
+            midiprint(MPError, "reading message: end of input");
             b->i = i;
             return 0;
           }
@@ -244,7 +247,7 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs)
         /* Get the type. */
         if(b->i >= b->n)
           {
-            midierror("reading message: end of input");
+            midiprint(MPError, "reading message: end of input");
             b->i = i;
             return 0;
           }
@@ -266,7 +269,7 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs)
     }
 
   /* What's that? */
-  midierror("unknown message type %hu", msg->generic.cmd);
+  midiprint(MPError, "unknown message type %hu", msg->generic.cmd);
   return 0;
 }
 
@@ -357,7 +360,7 @@ int write_message(MBUF *b, MFMessage *msg, unsigned char *rs)
         return write_vld(b, msg->sequencerspecific.data);
     }
 
-  midierror("writing message: unknown message type %hd", cmd);
+  midiprint(MPError, "writing message: unknown message type %hd", cmd);
   return 0;
 }
 

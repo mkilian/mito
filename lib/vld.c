@@ -1,10 +1,13 @@
 /*
- * $Id: vld.c,v 1.1 1996/04/01 19:11:06 kilian Exp $
+ * $Id: vld.c,v 1.2 1996/04/02 10:19:57 kilian Exp $
  *
  * Read variable sized quantities and data.
  *
  * $Log: vld.c,v $
- * Revision 1.1  1996/04/01 19:11:06  kilian
+ * Revision 1.2  1996/04/02 10:19:57  kilian
+ * Adapted changes of the print functions.
+ *
+ * Revision 1.1  1996/04/01  19:11:06  kilian
  * Initial revision
  *
  */
@@ -39,7 +42,7 @@ long read_vlq(MBUF *b)
 
   if(n < 1)
     {
-      midierror("reading vlq: end of input");
+      midiprint(MPError, "reading vlq: end of input");
       return -1;
     }
 
@@ -63,7 +66,7 @@ int write_vlq(MBUF *b, long vlq)
 
   if(vlq < 0 || vlq > 0x0fffffff)
     {
-      midierror("writing vlq: out of range");
+      midiprint(MPError, "writing vlq: out of range");
       return 0;
     }
 
@@ -93,14 +96,14 @@ void *read_vld(MBUF *b)
 
   if(b->i + length > b->n)
     {
-      midierror("reading vld: end of input");
+      midiprint(MPError, "reading vld: end of input");
       b->i = i;
       return NULL;
     }
 
   if(!(data = malloc(sizeof(long) + length)))
     {
-      midierror("%s", strerror(errno));
+      midiprint(MPError, "%s", strerror(errno));
       b->i = i;
       return NULL;
     }
