@@ -1,9 +1,12 @@
 /*
- * $Id: track.h,v 1.4 1996/05/20 17:46:48 kilian Exp $
+ * $Id: track.h,v 1.5 1996/05/21 08:44:59 kilian Exp $
  *
  * Managing tracks, i.e. sequences of events.
  *
  * $Log: track.h,v $
+ * Revision 1.5  1996/05/21 08:44:59  kilian
+ * Added memory statistics.
+ *
  * Revision 1.4  1996/05/20 17:46:48  kilian
  * Events are no longer stored in a tree but in a flat array.
  * Insertion will now be somewhat slower and tracks will use slightly more
@@ -27,6 +30,15 @@
 
 #include "event.h"
 
+
+/*
+ * Memory statistics:
+ * Greatest used track size and greatest allocated track size (in
+ * elements, i.e. event structures), the difference giving the wasted
+ * space in the worst track.
+ */
+extern unsigned long maxused;
+extern unsigned long maxallocated;
 
 
 /*

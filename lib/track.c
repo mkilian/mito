@@ -1,9 +1,12 @@
 /*
- * $Id: track.c,v 1.5 1996/05/20 22:09:11 kilian Exp $
+ * $Id: track.c,v 1.6 1996/05/21 08:44:59 kilian Exp $
  *
  * Managing tracks, i.e. sequences of events.
  *
  * $Log: track.c,v $
+ * Revision 1.6  1996/05/21 08:44:59  kilian
+ * Added memory statistics.
+ *
  * Revision 1.5  1996/05/20 22:09:11  kilian
  * Sort voice events by channel number.
  *
@@ -41,6 +44,15 @@
 #include <assert.h>
 
 #include "track.h"
+
+/*
+ * Memory statistics:
+ * Greatest used track size and greatest allocated track size (in
+ * elements, i.e. event structures), the difference giving the wasted
+ * space in the worst track.
+ */
+unsigned long maxused = 0;
+unsigned long maxallocated = 0;
 
 
 /*
@@ -80,13 +92,21 @@ static MFEvent *enlarge(Track *t)
   /* This tricky expression tests wether `n' is a power of two. */
   if((n ^ (n-1)) == 2 * n - 1)
     {
-      if(!(new = realloc(t->events, 2 * n * sizeof(*new))))
+      n *= 2;
+      if(!(new = realloc(t->events, n * sizeof(*new))))
         return NULL;
+
+      if(maxallocated < n)
+        maxallocated = n;
 
       t->events = new;
     }
 
-  return &(t->events[t->nevents++]);
+  t->nevents++;
+  if(maxused < t->nevents)
+    maxused = t->nevents;
+
+  return &(t->events[t->nevents-1]);
 }
 
 
