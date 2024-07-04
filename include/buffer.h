@@ -1,16 +1,5 @@
 /*
- * $Id: buffer.h,v 1.2 1996/05/21 11:48:00 kilian Exp $
- *
  * In-memory buffer.
- *
- * $Log: buffer.h,v $
- * Revision 1.2  1996/05/21 11:48:00  kilian
- * The buffer structure has been hidden. This may allow reading and writing
- * files directly in future versions.
- *
- * Revision 1.1  1996/04/01 19:10:57  kilian
- * Initial revision
- *
  */
 
 #ifndef __BUFFER_H__

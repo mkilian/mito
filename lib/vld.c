@@ -1,29 +1,5 @@
 /*
- * $Id: vld.c,v 1.6 2000/01/13 22:14:00 kili Exp $
- *
  * Read variable sized quantities and data.
- *
- * $Log: vld.c,v $
- * Revision 1.6  2000/01/13 22:14:00  kili
- * Fixed missing initialization.
- *
- * Revision 1.5  1996/05/21 11:48:00  kilian
- * The buffer structure has been hidden. This may allow reading and writing
- * files directly in future versions.
- *
- * Revision 1.4  1996/04/03 14:24:31  kilian
- * Fixed some bugs when using mbuf_get.
- * Made argument to vld_size and vld_data const.
- *
- * Revision 1.3  1996/04/02  23:27:48  kilian
- * Treat writing of out-of-range vlq's and failing allocations as fatal errors.
- *
- * Revision 1.2  1996/04/02  10:19:57  kilian
- * Adapted changes of the print functions.
- *
- * Revision 1.1  1996/04/01  19:11:06  kilian
- * Initial revision
- *
  */
 
 #include <stdio.h>

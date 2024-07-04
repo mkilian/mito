@@ -1,19 +1,5 @@
 /*
- * $Id: util.c,v 1.3 1996/05/20 22:10:11 kilian Exp $
- *
  * Utility functions for midilib.
- *
- * $Log: util.c,v $
- * Revision 1.3  1996/05/20 22:10:11  kilian
- * Added compressNoteOff.
- * Fixed and improved pairNotes (now uses alloca to store NoteOns).
- *
- * Revision 1.2  1996/05/20 17:46:07  kilian
- * Changes due to new track structure/functions.
- *
- * Revision 1.1  1996/05/20 04:29:46  kilian
- * Initial revision
- *
  */
 
 

@@ -1,41 +1,5 @@
 /*
- * $Id: track.c,v 1.6 1996/05/21 08:44:59 kilian Exp $
- *
  * Managing tracks, i.e. sequences of events.
- *
- * $Log: track.c,v $
- * Revision 1.6  1996/05/21 08:44:59  kilian
- * Added memory statistics.
- *
- * Revision 1.5  1996/05/20 22:09:11  kilian
- * Sort voice events by channel number.
- *
- * Revision 1.4  1996/05/20 17:46:48  kilian
- * Events are no longer stored in a tree but in a flat array.
- * Insertion will now be somewhat slower and tracks will use slightly more
- * memory due to exponentially growing blocks (about 20% more).
- * On the other hand, the track functions are much less error prone than the
- * old functions using the tree-like structure.
- *
- * Revision 1.3  1996/04/07 22:30:18  kilian
- * Added consistency check.
- * More assertions.
- * Hopefully fixed track_release.
- * User-controllable debugging level.
- *
- * Revision 1.3  1996/04/07  19:43:47  kilian
- * Added consistency check.
- * More assertions.
- * Hopefully fixed track_release.
- *
- * Revision 1.2  1996/04/07  16:46:20  kilian
- * Implemented track_compress.
- * Changed return value of track_compress to int.
- * Some minor changes.
- *
- * Revision 1.1  1996/04/06  23:01:42  kilian
- * Initial revision
- *
  */
 
 #include <stdio.h>

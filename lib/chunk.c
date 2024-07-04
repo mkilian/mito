@@ -1,29 +1,5 @@
 /*
- * $Id: chunk.c,v 1.6 1996/05/21 11:48:00 kilian Exp $
- *
  * Get header and track chunks of standard midi files.
- *
- * $Log: chunk.c,v $
- * Revision 1.6  1996/05/21 11:48:00  kilian
- * The buffer structure has been hidden. This may allow reading and writing
- * files directly in future versions.
- *
- * Revision 1.5  1996/04/06 23:02:19  kilian
- * Fix in write_MThd.
- *
- * Revision 1.4  1996/04/03  14:23:54  kilian
- * Added write_MThd and write_MTrk.
- *
- * Revision 1.3  1996/04/02  23:26:30  kilian
- * Restore buffer position if no chunk was found.
- * Treat `This can't happen' as fatal error.
- *
- * Revision 1.2  1996/04/02  10:19:57  kilian
- * Adapted changes of the print functions.
- *
- * Revision 1.1  1996/04/01  19:11:06  kilian
- * Initial revision
- *
  */
 
 #include <stdio.h>

@@ -1,28 +1,5 @@
 /*
- * $Id: score.h,v 1.6 1996/05/20 17:46:07 kilian Exp $
- *
  * Reading and writing of complete scores.
- *
- * $Log: score.h,v $
- * Revision 1.6  1996/05/20 17:46:07  kilian
- * Changes due to new track structure/functions.
- *
- * Revision 1.5  1996/04/07 16:45:15  kilian
- * Added maxdescs and maxempty parameters to score_new and score_read.
- *
- * Revision 1.4  1996/04/06  23:00:10  kilian
- * Changes due to the new track structure.
- *
- * Revision 1.3  1996/04/02  23:24:16  kilian
- * Field `nev' removed. The tracks field now contains the number of events
- * in each track.
- *
- * Revision 1.2  1996/04/02  10:18:12  kilian
- * Changed score structure.
- *
- * Revision 1.1  1996/04/01  19:10:57  kilian
- * Initial revision
- *
  */
 
 #ifndef __SCORE_H__

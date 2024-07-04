@@ -1,37 +1,5 @@
 /*
- * $Id: event.c,v 1.9 1996/05/21 11:48:00 kilian Exp $
- *
  * Read midi file messages and events.
- *
- * $Log: event.c,v $
- * Revision 1.9  1996/05/21 11:48:00  kilian
- * The buffer structure has been hidden. This may allow reading and writing
- * files directly in future versions.
- *
- * Revision 1.8  1996/05/20 17:44:49  kilian
- * Added PortNumber meta message.
- *
- * Revision 1.7  1996/04/30 14:21:32  kilian
- * Started to support note events with durations.
- *
- * Revision 1.6  1996/04/07  19:18:01  kilian
- * On cleanup, set the command to `Empty'.
- *
- * Revision 1.5  1996/04/04  16:25:04  kilian
- * Issue an error message if arguments of several messages are not data bytes.
- *
- * Revision 1.4  1996/04/03  14:26:57  kilian
- * Many fixes in write_event.
- *
- * Revision 1.3  1996/04/02  23:28:40  kilian
- * Treat writing of unknown message types as fatal error.
- *
- * Revision 1.2  1996/04/02  10:19:57  kilian
- * Adapted changes of the print functions.
- *
- * Revision 1.1  1996/04/01  19:11:06  kilian
- * Initial revision
- *
  */
 
 #include <stdio.h>

@@ -1,15 +1,5 @@
 /*
- * $Id: vld.h,v 1.2 1996/04/03 14:24:31 kilian Exp $
- *
  * Read variable sized quantities and data.
- *
- * $Log: vld.h,v $
- * Revision 1.2  1996/04/03 14:24:31  kilian
- * Made argument to vld_size and vld_data const.
- *
- * Revision 1.1  1996/04/01  19:10:57  kilian
- * Initial revision
- *
  */
 
 #ifndef __VLD_H__

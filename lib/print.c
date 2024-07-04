@@ -1,15 +1,5 @@
 /*
- * $Id: print.c,v 1.2 1996/04/02 10:19:11 kilian Exp $
- *
  * Message printing hooks.
- *
- * $Log: print.c,v $
- * Revision 1.2  1996/04/02 10:19:11  kilian
- * Use only one printing function resp. hook together with a printlevel.
- *
- * Revision 1.1  1996/04/01  20:20:21  kilian
- * Initial revision
- *
  */
 
 #include <stdio.h>

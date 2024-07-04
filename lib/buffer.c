@@ -1,19 +1,5 @@
 /*
- * $Id: buffer.c,v 1.3 1996/05/21 11:48:00 kilian Exp $
- *
  * In-memory buffer.
- *
- * $Log: buffer.c,v $
- * Revision 1.3  1996/05/21 11:48:00  kilian
- * The buffer structure has been hidden. This may allow reading and writing
- * files directly in future versions.
- *
- * Revision 1.2  1996/04/03 14:25:51  kilian
- * Fixed mbuf_pos. Now it is possible to set the pos to the very end.
- *
- * Revision 1.1  1996/04/01  19:11:06  kilian
- * Initial revision
- *
  */
 
 #include <stdio.h>

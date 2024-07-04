@@ -1,23 +1,3 @@
-########################################################################
-# $Id: Makefile,v 1.4 2000/01/13 22:41:44 kili Exp $
-#
-# Makefile for `cm/lib'.
-#
-# $Log: Makefile,v $
-# Revision 1.4  2000/01/13 22:41:44  kili
-# Just a check-in with dependencies included into Makefiles.
-#
-# Revision 1.3  1996/05/20 04:29:21  kilian
-# Added util.o
-#
-# Revision 1.2  1996/04/06 23:02:51  kilian
-# Added track.o.
-#
-# Revision 1.1  1996/02/05  16:09:37  kilian
-# Initial revision
-#
-#
-########################################################################
 include $(TOP)/Rules
 
 # Libraries to build:

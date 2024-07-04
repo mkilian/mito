@@ -1,17 +1,9 @@
 #!/bin/sh
 #
-# $Id: mnew,v 1.1 2000/01/13 22:59:45 kili Exp $
-#
 # Try to renew a midi file by reading and writing it using mito.
 # If the header data, track lengths and the event list reported by mito
 # is the same for the original and the new file, replace the original by
 # the new file.
-#
-# $Log: mnew,v $
-# Revision 1.1  2000/01/13 22:59:45  kili
-# Initial Revision.
-#
-#
 
 tmp=/tmp/.$$
 trap "rm -f $tmp.* " 0
