@@ -26,7 +26,7 @@ long read_vlq(MBUF *b)
   unsigned char c = 0;
 
   while(mbuf_request(b, 1) && n++ < 4 && (c = mbuf_get(b)) & 0x80)
-  	vlq = vlq << 7 | c & 0x7f;
+	vlq = vlq << 7 | (c & 0x7f);
 
   if(n < 1)
     {
@@ -70,7 +70,7 @@ int write_vlq(MBUF *b, long vlq)
   while(vlq > 0x7f)
     {
       vlq >>= 7;
-      buf[result++] = 0x80 | vlq & 0x7f;
+      buf[result++] = 0x80 | (vlq & 0x7f);
     }
 
   i = result;

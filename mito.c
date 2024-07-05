@@ -347,10 +347,10 @@ static void group(Score *s)
  */
 static void ungroup(Score *s)
 {
-  int t, n;
+  int t;
   for(t = 0; t < s->ntrk; t++)
     {
-      n = unpairNotes(s->tracks[t]);
+      (void) unpairNotes(s->tracks[t]);
       compressNoteOff(s->tracks[t], 0);
     }
 }
