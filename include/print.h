@@ -25,7 +25,7 @@ typedef enum {
  * It is called as vprintf-like functions, with an additional argument
  * `level' which specifies the level of message (see above).
  */
-void (*midiprint_hook)(MPLevel level, const char *fmt, va_list args);
+extern void (*midiprint_hook)(MPLevel level, const char *fmt, va_list args);
 
 
 /*

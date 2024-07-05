@@ -3,12 +3,12 @@
 ########################################################################
 
 # The C compiler.
-CC        = gcc
+CC        = cc
 
 # Optimization and or debugging flags for compiler and linker.
 # To override flags on the commandline, use these rather than `CFLAGS'
 # and `LDFLAGS'.
-COPTS     = -Wall -O6
+COPTS     = -Wall -O2
 LDOPTS    = -s
 
 # Compiler and linker flags.
