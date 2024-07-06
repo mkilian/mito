@@ -13,7 +13,8 @@
 const unsigned long MThd = 'M' << 24 | 'T' << 16 | 'h' << 8 | 'd';
 const unsigned long MTrk = 'M' << 24 | 'T' << 16 | 'r' << 8 | 'k';
 
-/* Check if there is a header chunk at the current position of `b'.  If
+/*
+ * Check if there is a header chunk at the current position of `b'.  If
  * so, fill in the given chunk position, update the buffer position and
  * return 1 else return 0.
  * If there is an invalid header chunk, a warning is written.
@@ -105,7 +106,8 @@ static int tryMTrk(MBUF *b, CHUNK *c) {
 	return 1;
 }
 
-/* Search the given buffer of size `size' until a header or track chunk
+/*
+ * Search the given buffer of size `size' until a header or track chunk
  * is found.  The name is used in warning messages. If it is a NULL
  * pointer, no messages will be written.
  *
@@ -130,7 +132,8 @@ long search_chunk(MBUF *b, CHUNK *chunk) {
 	unsigned long p = mbuf_pos(b);
 	unsigned long i = 0;
 
-	/* Search the header including all fields.
+	/*
+	 * Search the header including all fields.
 	 * Corrupted headers are skipped after issuing a warning message.
 	 */
 	while (mbuf_request(b, 8) && !tryMThd(b, chunk) && !tryMTrk(b, chunk)) {
@@ -150,7 +153,8 @@ long search_chunk(MBUF *b, CHUNK *chunk) {
 	}
 }
 
-/* Write a header chunk with the given fields.
+/*
+ * Write a header chunk with the given fields.
  * Return 1 on succes, 0 on error.
  */
 int write_MThd(MBUF *b, int fmt, int ntrk, int div) {

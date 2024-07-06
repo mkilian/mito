@@ -23,7 +23,8 @@ Score *score_new(void) {
 	return s;
 }
 
-/* Add an empty track to a score.
+/*
+ * Add an empty track to a score.
  * Returns 1 on success, else 0.
  */
 int score_add(Score *s) {
@@ -40,7 +41,8 @@ int score_add(Score *s) {
 	return 1;
 }
 
-/* Read an event list from the next `size' bytes of the buffer into the
+/*
+ * Read an event list from the next `size' bytes of the buffer into the
  * track `t'.
  */
 static int read_events(MBUF *b, unsigned long size, Track *t) {
@@ -83,7 +85,8 @@ static int read_events(MBUF *b, unsigned long size, Track *t) {
 	return 1;
 }
 
-/* Read the score header (if existing) and the first track header.
+/*
+ * Read the score header (if existing) and the first track header.
  * The header data is filled into the score structure and the size field
  * of the track header is returned.
  * If the score header is missing, an error message is issued and the
@@ -148,7 +151,8 @@ static long read_header(MBUF *b, Score *s) {
 	return chunk.hdr.mtrk.size;
 }
 
-/* Read the next track header and return it's size.
+/*
+ * Read the next track header and return it's size.
  * If there are no more chunks, or the next chunk is not a track
  * header, the old buffer position is restored and -1 is returned.
  */
@@ -181,7 +185,8 @@ static long read_track(MBUF *b) {
 	return chunk.hdr.mtrk.size;
 }
 
-/* Read the next score from a buffer (there may be multiple scores
+/*
+ * Read the next score from a buffer (there may be multiple scores
  * within one buffer).
  * If the score header is missing, default values are assumed.
  */
@@ -219,9 +224,7 @@ Score *score_read(MBUF *b) {
 		size = read_track(b);
 	}
 
-	/*
-	 * Check the number of tracks.
-	 */
+	/* Check the number of tracks. */
 	if (s->ntrk < ntrk)
 		midiprint(MPError, "%ld tracks missing", ntrk - s->ntrk);
 	else if (s->ntrk > ntrk)

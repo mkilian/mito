@@ -23,7 +23,8 @@ Score *score_new(void);
  */
 int score_add(Score *s);
 
-/* Read the next score from a buffer (there may be multiple scores
+/*
+ * Read the next score from a buffer (there may be multiple scores
  * within one buffer).
  * If the score header is missing, default values are assumed.
  */

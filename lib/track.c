@@ -7,7 +7,8 @@
 
 #include "track.h"
 
-/* Memory statistics:
+/*
+ * Memory statistics:
  * Greatest used track size and greatest allocated track size (in
  * elements, i.e. event structures), the difference giving the wasted
  * space in the worst track.
@@ -15,7 +16,8 @@
 unsigned long maxused = 0;
 unsigned long maxallocated = 0;
 
-/* Build a new track.
+/*
+ * Build a new track.
  * The function returns a pointer to the new (empty) track or NULL on
  * errors.
  */
@@ -31,7 +33,8 @@ Track *track_new(void) {
 	return t;
 }
 
-/* Enlarge a track by one entry.
+/*
+ * Enlarge a track by one entry.
  * Since realloc() may be expensive, we use exponentially growing
  * blocksizes starting at 1K, i.e. 1024, 2048, 4096, ...
  * The nevents field is updated and the address of the new (last) event
@@ -64,7 +67,8 @@ static MFEvent *enlarge(Track *t) {
 }
 
 
-/* Shrink the track by `n' events. This means that the last `n' events
+/*
+ * Shrink the track by `n' events. This means that the last `n' events
  * of the track become invalid.
  */
 static void shrink(Track *t, unsigned long n) {
@@ -83,7 +87,8 @@ static void shrink(Track *t, unsigned long n) {
 		t->current = t->nevents;
 }
 
-/* Pack a track, i.e. fill in all gaps (empty events) by shifting events
+/*
+ * Pack a track, i.e. fill in all gaps (empty events) by shifting events
  * down.
  */
 static void pack(Track *t) {
@@ -112,7 +117,8 @@ static void start_insertion(Track *t) {
 	t->inserting = 1;
 }
 
-/* Comparision function for sorting of events.
+/*
+ * Comparision function for sorting of events.
  * For equal-timed events, the following partial order holds:
  *   Any event           < End of track
  *   Other meta event    < Voice event
@@ -184,7 +190,8 @@ static void stop_insertion(Track *t) {
 	qsort(t->events, t->nevents, sizeof(*(t->events)), _ecmp);
 }
 
-/* This check for EOT (end of tape), which is the position directly
+/*
+ * This check for EOT (end of tape), which is the position directly
  * after the last event as well as the position directly before the
  * first event. Thus, EOT is like a special mark in a circular
  * structure.
@@ -206,7 +213,8 @@ void track_rewind(Track *t) {
 		t->current = t->nevents;
 }
 
-/* Retrieve the current position.
+/*
+ * Retrieve the current position.
  * A retrieved position becomes invalid after an event has been deleted
  * or inserted.
  */
@@ -221,7 +229,8 @@ void track_setpos(Track *t, TrackPos p) {
 		t->current = p;
 }
 
-/* Step to the next or, if `rew' is true, the previous  event and update
+/*
+ * Step to the next or, if `rew' is true, the previous  event and update
  * the position.
  * Returns the address of the event or NULL, if EOT is reached. Note
  * that `EOT' means `end of track' in both directions.
@@ -252,7 +261,8 @@ MFEvent *track_step(Track *t, int rew) {
 	return e;
 }
 
-/* Search the first event with a time field equal to or greater than
+/*
+ * Search the first event with a time field equal to or greater than
  * `time'. Returns the found event, or NULL, if EOT is reached.
  * In both cases, the position will be updated, i.e. will be either the
  * position of the found event or EOT.
@@ -307,7 +317,8 @@ void track_clear(Track *t) {
 	free(t);
 }
 
-/* Delete the event at the current position and increase the position,
+/*
+ * Delete the event at the current position and increase the position,
  * i.e. set the position to the next element.
  * If the current position is EOT, or the track is empty at all, return
  * 0, else 1. In other words, this function returns the number of
@@ -334,7 +345,8 @@ int track_delete(Track *t) {
 	return 1;
 }
 
-/* Insert the given event `e' into `t'.
+/*
+ * Insert the given event `e' into `t'.
  * If there are already events at the time of `e' within `t', `e' will
  * be the last event with this time. It is not possible to insert events
  * in front of a track that already contains events of time 0.

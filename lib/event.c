@@ -10,7 +10,8 @@
 #include "event.h"
 #include "vld.h"
 
-/* This converts a general meta message into a specific message, if
+/*
+ * This converts a general meta message into a specific message, if
  * possible. If conversion into a fixed size message is possible, the
  * allocated data will be freed automatically.
  * If something goes wrong, it frees the allocated data and return 0,
@@ -129,7 +130,8 @@ static int convert_meta(MFMessage *msg) {
 	return result;
 }
 
-/* Get the next message from the buffer and store it at `msg'. For variable
+/*
+ * Get the next message from the buffer and store it at `msg'. For variable
  * sized messages, the necessary memory is automatically allocated.
  * `rs' points to a location that contains the current channel voice
  * status byte and is used to support running status. It is updated if
@@ -235,7 +237,8 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs) {
 		return 1;
 		break;
 	case META:
-		/* Get the type. There must be at least two bytes; one for the
+		/*
+		 * Get the type. There must be at least two bytes; one for the
 		 * type and one for the size.
 		 */
 		if (!mbuf_request(b, 2)) {
@@ -263,12 +266,14 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs) {
 	return 0;
 }
 
-/* Write the event into the buffer. If `rs' is nonzero, it is used to
+/*
+ * Write the event into the buffer. If `rs' is nonzero, it is used to
  * support running status. In contrast to `read_message', `rs' may be
  * NULL, which switches running status off.
  * Returns 1 on success and 0 on errors.
  */
-/* Note that running status will not carry over system common or meta
+/*
+ * Note that running status will not carry over system common or meta
  * messages as in read_message.
  */
 int write_message(MBUF *b, MFMessage *msg, unsigned char *rs) {
@@ -293,7 +298,8 @@ int write_message(MBUF *b, MFMessage *msg, unsigned char *rs) {
 		}
 	} else if (cmd >= 0x80) {
 		/* This is a channel voice message. */
-		/* Write the command if no running status exists or differs from
+		/*
+		 * Write the command if no running status exists or differs from
 		 * the command.
 		 */
 		if (!(rs && *rs == cmd) && mbuf_put(b, cmd) == EOF)
@@ -385,7 +391,8 @@ int write_message(MBUF *b, MFMessage *msg, unsigned char *rs) {
 	return 0;
 }
 
-/* To simplify cleanup, this function frees allocated data if `msg' is a
+/*
+ * To simplify cleanup, this function frees allocated data if `msg' is a
  * variable sized message.
  */
 void clear_message(MFMessage *msg) {
@@ -427,7 +434,8 @@ void clear_message(MFMessage *msg) {
   msg->empty.type = EMPTY;
 }
 
-/* Get the next event, i.e. the next (delta) time and message.
+/*
+ * Get the next event, i.e. the next (delta) time and message.
  * Parameters and return value are the same as of `read_message'.
  */
 int read_event(MBUF *b, MFEvent *ev, unsigned char *rs) {
@@ -440,7 +448,8 @@ int read_event(MBUF *b, MFEvent *ev, unsigned char *rs) {
 		return 1;
 }
 
-/* Write the next event.
+/*
+ * Write the next event.
  * Parameters and return values as of `write_message'.
  */
 int write_event(MBUF *b, MFEvent *ev, unsigned char *rs) {

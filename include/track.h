@@ -5,7 +5,8 @@
 
 #include "event.h"
 
-/* Memory statistics:
+/*
+ * Memory statistics:
  * Greatest used track size and greatest allocated track size (in
  * elements, i.e. event structures), the difference giving the wasted
  * space in the worst track.
@@ -25,7 +26,8 @@ typedef struct _Track {
 /* Track positions: */
 typedef unsigned long TrackPos;
 
-/* Build a new track.
+/*
+ * Build a new track.
  * The function returns a pointer to the new (empty) track or NULL on
  * errors.
  */
@@ -34,7 +36,8 @@ Track *track_new(void);
 /* Get the number of events in the track. */
 unsigned long track_nevents(Track *t);
 
-/* This check for EOT (end of track), which is the position directly
+/*
+ * This check for EOT (end of track), which is the position directly
  * after the last event as well as the position directly before the
  * first event. Thus, EOT is like a special mark in a circular
  * structure.
@@ -45,7 +48,8 @@ int track_eot(Track *t);
 /* Rewind the track position. If `t' is NULL, do nothing. */
 void track_rewind(Track *t);
 
-/* Retrieve the current position.
+/*
+ * Retrieve the current position.
  * A retrieved position becomes invalid after an event has been deleted
  * or inserted.
  */
@@ -54,7 +58,8 @@ TrackPos track_getpos(Track *t);
 /* Restore a position retrieved with `track_getpos'. */
 void track_setpos(Track *t, TrackPos p);
 
-/* Step to the next or, if `rew' is true, the previous  event and update
+/*
+ * Step to the next or, if `rew' is true, the previous  event and update
  * the position.
  * Returns the address of the event or NULL, if EOT is reached. Note
  * that `EOT' means `end of track' in both directions.
@@ -62,7 +67,8 @@ void track_setpos(Track *t, TrackPos p);
  */
 MFEvent *track_step(Track *t, int rew);
 
-/* Search the first event with a time field equal to or greater than
+/*
+ * Search the first event with a time field equal to or greater than
  * `time'. Returns the found event, or NULL, if EOT is reached.
  * In both cases, the position will be updated, i.e. will be either the
  * position of the found event or EOT.
@@ -72,7 +78,8 @@ MFEvent *track_find(Track *t, long time);
 /* Completely delete a track. */
 void track_clear(Track *t);
 
-/* Delete the event at the current position and increase the position,
+/*
+ * Delete the event at the current position and increase the position,
  * i.e. set the position to the next element.
  * If the current position is EOT, or the track is empty at all, return
  * 0, else 1. In other words, this function returns the number of
@@ -80,7 +87,8 @@ void track_clear(Track *t);
  */
 int track_delete(Track *t);
 
-/* Insert the given event `e' into `t'.
+/*
+ * Insert the given event `e' into `t'.
  * If there are already events at the time of `e' within `t', `e' will
  * be the last event with this time. It is not possible to insert events
  * in front of a track that already contains events of time 0.

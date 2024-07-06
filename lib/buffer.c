@@ -28,7 +28,8 @@ MBUF *mbuf_new(void) {
 	return (MBUF*)b;
 }
 
-/* Read the file into the buffer.
+/*
+ * Read the file into the buffer.
  * Returns 0 on success, else -1.
  */
 int read_mbuf(MBUF *_b, FILE *f) {
@@ -54,7 +55,8 @@ int read_mbuf(MBUF *_b, FILE *f) {
 	return 0;
 }
 
-/* Write the buffer to the file.
+/*
+ * Write the buffer to the file.
  * Returns -1 on error and 0 on success.
  */
 int write_mbuf(MBUF *_b, FILE *f) {
@@ -65,14 +67,14 @@ int write_mbuf(MBUF *_b, FILE *f) {
 		return 0;
 }
 
-/* Get the current position of a buffer.
- */
+/* Get the current position of a buffer. */
 unsigned long mbuf_pos(MBUF *_b) {
 	_MBUF *b = (_MBUF*)_b;
 	return b->i;
 }
 
-/* Set the position of a buffer.
+/*
+ * Set the position of a buffer.
  * If the position is negative, set relative to the end of buffer.
  * Returns the new position which may be different from `pos' if `pos'
  * is out of range.
@@ -88,7 +90,8 @@ unsigned long mbuf_set(MBUF *_b, unsigned long pos) {
 	return b->i;
 }
 
-/* Returns nonzero if the buffer contains at least n bytes from the
+/*
+ * Returns nonzero if the buffer contains at least n bytes from the
  * current position to the end.
  */
 int mbuf_request(MBUF *_b, unsigned long n) {
@@ -99,7 +102,8 @@ int mbuf_request(MBUF *_b, unsigned long n) {
 		return 0 >= n;
 }
 
-/* Get the character at the current position of the buffer and advance
+/*
+ * Get the character at the current position of the buffer and advance
  * the position.
  * Returns the character or EOF if the end of the buffer is reached.
  */
@@ -111,7 +115,8 @@ int mbuf_get(MBUF *_b) {
 		return (b->b[b->i++]) & 0xff;
 }
 
-/* Put a character at the current position in the buffer and advance the
+/*
+ * Put a character at the current position in the buffer and advance the
  * position. If the current position is a the end of the buffer, the
  * buffer is automatically enlarged.
  * Returns the stored character or EOF on errors.
@@ -134,7 +139,8 @@ void mbuf_free(MBUF *_b) {
 	}
 }
 
-/* Insert buffer `b2' at the current position of `b1'.
+/*
+ * Insert buffer `b2' at the current position of `b1'.
  * Returns 0 on success, else -1. In the latter case, `b1' may be
  * invalid.
  */

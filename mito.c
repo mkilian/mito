@@ -335,7 +335,8 @@ static void mergetracks(Score *s) {
 			track_delete(s->tracks[0]);
 }
 
-/* For each track in `s', write a track header and all it's events into
+/*
+ * For each track in `s', write a track header and all it's events into
  * the buffer. If `concat' is nonzero, only one header is written and
  * all tracks are appended.
  * Returns 1 on success, else 0.
@@ -368,7 +369,8 @@ static int write_tracks(MBUF *b, Score *s, int concat) {
 			e->time -= time;
 			time += e->time;
 
-			/* If we are in concat mode, we only write the very last EOT
+			/*
+			 * If we are in concat mode, we only write the very last EOT
 			 * event.
 			 */
 			if ((!concat || t == s->ntrk - 1 ||
@@ -405,7 +407,8 @@ static int dofile(const char *spec, int flags) {
 	Score _s, *s = &_s;
 	int scorenum;
 
-	/* Starting and end numbers of selected scores. If `sc1' is -1, all
+	/*
+	 * Starting and end numbers of selected scores. If `sc1' is -1, all
 	 * scores are selected and `sc0' is set to 0.
 	 */
 	long sc0 = 0, sc1 = -1;

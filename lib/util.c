@@ -1,12 +1,12 @@
 /* Utility functions for midilib. */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "util.h"
 
-/* Convert NoteOn/NoteOff pairs into combined Note Events. For each NoteOff
+/*
+ * Convert NoteOn/NoteOff pairs into combined Note Events. For each NoteOff
  * event, the last corresponding NoteOn event will get the release
  * velocity and duration fields filled in and the NoteOff event will be
  * deleted. Thus, if two notes overlap, the shorter one will allways be
@@ -77,7 +77,8 @@ int pairNotes(Track *t) {
 	return non + noff;
 }
 
-/* Counterpart to `pairNotes'. For each combined Note event, the
+/*
+ * Counterpart to `pairNotes'. For each combined Note event, the
  * corresponding NoteOff event is created and the duration and release
  * velocity fields are reset to 0.
  * This function doesn't adjust possible EOT events!
@@ -126,7 +127,8 @@ int unpairNotes(Track *t) {
 	return n;
 }
 
-/* If `force' is nonzero, unconditionally replace all NoteOff events by
+/*
+ * If `force' is nonzero, unconditionally replace all NoteOff events by
  * NoteOn events with velocity zero.
  * If `force' is zero, the replacement takes place if all NoteOff events
  * have the same velocity.

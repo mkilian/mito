@@ -15,7 +15,8 @@ typedef enum {
 	MPFatal		/* For system level errors. */
 } MPLevel;
 
-/* The function pointer `midiprint_hook', if not NULL, is used to write
+/*
+ * The function pointer `midiprint_hook', if not NULL, is used to write
  * strings to the output of the application.
  * It is called as vprintf-like functions, with an additional argument
  * `level' which specifies the level of message (see above).

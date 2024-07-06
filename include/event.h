@@ -7,7 +7,8 @@
 
 #include "buffer.h"
 
-/* Midifile message types.
+/*
+ * Midifile message types.
  * For channel voice commands, the lower nibble is set to 0.
  */
 typedef enum {
@@ -52,7 +53,8 @@ typedef enum {
 	WARNING			= 0x72
 } MFMetaType;
 
-/* Structures for all of the message types.
+/*
+ * Structures for all of the message types.
  * Each of this contains the status byte as it's first element. For
  * channel voice messages, this is further split into two 4-bit
  * quantities containing the command (upper nibble) and the channel
@@ -107,7 +109,8 @@ typedef struct {
 			 * a 2x7bit quantity. */
 } MFPitchWheelChange;
 
-/* For sysex messages, the data is stored elsewhere. The structure itself
+/*
+ * For sysex messages, the data is stored elsewhere. The structure itself
  * only contains a pointer to the data field.
  */
 typedef struct {
@@ -126,7 +129,8 @@ typedef struct {
 	void *data;
 } MFMeta;
 
-/* To avoid clutter, meta messages are flattened to the level of normal
+/*
+ * To avoid clutter, meta messages are flattened to the level of normal
  * messages instead of storing just a data pointer. Nevertheless several
  * meta messages will *contain* a pointer to data (e.g. text events).
  * To distinguish normal messages from meta messages, the latter will have
@@ -210,7 +214,8 @@ typedef struct {
 	void *data;
 } MFSequencerSpecific;
 
-/* Internal messages. These should never be seen by the application.
+/*
+ * Internal messages. These should never be seen by the application.
  */
 typedef struct {
 	unsigned char type;
@@ -227,7 +232,8 @@ typedef struct {
 	void *text;
 } MFWarning;
 
-/* Now comes the big message union.
+/*
+ * Now comes the big message union.
  * To get the actual type of an message, one should first look at
  * *.generic.cmd.
  */
@@ -263,7 +269,8 @@ typedef union {
 	MFWarning		warning;
 } MFMessage;
 
-/* Get the next message from the buffer and store it at `msg'. For variable
+/*
+ * Get the next message from the buffer and store it at `msg'. For variable
  * sized messages, the necessary memory is automatically allocated.
  * `rs' points to a location that contains the current channel voice
  * status byte and is used to support running status. It is updated if
@@ -273,31 +280,36 @@ typedef union {
  */
 int read_message(MBUF *b, MFMessage *msg, unsigned char *rs);
 
-/* Write the event into the buffer. If `rs' is nonzero, it is used to
+/*
+ * Write the event into the buffer. If `rs' is nonzero, it is used to
  * support running status. In contrast to `read_message', `rs' may be
  * NULL, which switches running status off.
  * Returns 1 on success and 0 on errors.
  */
 int write_message(MBUF *b, MFMessage *msg, unsigned char *rs);
 
-/* To simplify cleanup, this function frees allocated data if `msg' is a
+/*
+ * To simplify cleanup, this function frees allocated data if `msg' is a
  * variable sized message.
  */
 void clear_message(MFMessage *msg);
 
-/* An *event* is a message together with the message's time.
+/*
+ * An *event* is a message together with the message's time.
  */
 typedef struct {
 	long time;
 	MFMessage msg;
 } MFEvent;
 
-/* Get the next event, i.e. the next (delta) time and message.
+/*
+ * Get the next event, i.e. the next (delta) time and message.
  * Parameters and return value are the same as of `read_message'.
  */
 int read_event(MBUF *b, MFEvent *ev, unsigned char *rs);
 
-/* Write the next event.
+/*
+ * Write the next event.
  * Parameters and return values as of `write_message'.
  */
 int write_event(MBUF *b, MFEvent *ev, unsigned char *rs);
