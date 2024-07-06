@@ -7,18 +7,15 @@
 
 #include <stdio.h>
 
-
 /*
  * Buffer structure containing the midifile.
  */
 typedef struct { void *dummy; } MBUF;
 
-
 /*
  * Create an mbuf.
  */
 MBUF *mbuf_new(void);
-
 
 /*
  * Read the file into the buffer.
@@ -26,19 +23,16 @@ MBUF *mbuf_new(void);
  */
 int read_mbuf(MBUF *b, FILE *f);
 
-
 /*
  * Write the buffer to the file.
  * Returns -1 on error and 0 on success.
  */
 int write_mbuf(MBUF *b, FILE *f);
 
-
 /*
  * Get the current position of a buffer.
  */
 unsigned long mbuf_pos(MBUF *b);
-
 
 /*
  * Set the position of a buffer.
@@ -48,13 +42,11 @@ unsigned long mbuf_pos(MBUF *b);
  */
 unsigned long mbuf_set(MBUF *b, unsigned long pos);
 
-
 /*
  * Returns nonzero if the buffer contains at least n bytes from the
  * current position to the end.
  */
 int mbuf_request(MBUF *b, unsigned long n);
-
 
 /*
  * Get the character at the current position of the buffer and advance
@@ -62,7 +54,6 @@ int mbuf_request(MBUF *b, unsigned long n);
  * Returns the character or EOF if the end of the buffer is reached.
  */
 int mbuf_get(MBUF *b);
-
 
 /*
  * Put a character at the current position in the buffer and advance the
@@ -72,12 +63,10 @@ int mbuf_get(MBUF *b);
  */
 int mbuf_put(MBUF *b, int ch);
 
-
 /*
  * Free the data of `b'.
  */
 void mbuf_free(MBUF *b);
-
 
 /*
  * Insert buffer `b2' at the current position of `b1'.

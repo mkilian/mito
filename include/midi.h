@@ -1,6 +1,4 @@
-/*
- * Main include file for the midi library.
- */
+/* Main include file for the midi library. */
 
 #ifndef __MIDI_H__
 #define __MIDI_H__
