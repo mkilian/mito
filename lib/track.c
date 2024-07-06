@@ -44,8 +44,8 @@ static MFEvent *enlarge(Track *t) {
 
 	n = t->nevents ? t->nevents : 512;
 
-  /* This tricky expression tests wether `n' is a power of two. */
-  if ((n ^ (n-1)) == 2 * n - 1) {
+	/* This tricky expression tests wether `n' is a power of two. */
+	if ((n ^ (n-1)) == 2 * n - 1) {
 		n *= 2;
 		if (!(new = realloc(t->events, n * sizeof(*new))))
 			return NULL;
@@ -321,7 +321,7 @@ int track_delete(Track *t) {
 	clear_message(&(t->events[t->current].msg));
 	t->events[t->current].msg.generic.cmd = EMPTY;
 
-  if (t->current + 1 < t->nevents) {
+	  if (t->current + 1 < t->nevents) {
 		t->events[t->current].time = t->events[t->current + 1].time;
 		t->nempty++;
 		track_step(t, 0);

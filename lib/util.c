@@ -139,7 +139,7 @@ void compressNoteOff(Track *t, int force) {
 		force = 1;
 		track_rewind(t);
 		while ((e = track_step(t, 0)) != NULL &&
-			(e->msg.generic.cmd & 0xf0) != NOTEOFF)
+		    (e->msg.generic.cmd & 0xf0) != NOTEOFF)
 			; /* SKIP */
 
 		if (e != NULL) {
@@ -147,7 +147,7 @@ void compressNoteOff(Track *t, int force) {
 
 			while (force && (e = track_step(t, 0)) != NULL)
 				if ((e->msg.generic.cmd & 0xf0) == NOTEOFF &&
-					e->msg.noteoff.velocity != vel)
+				    e->msg.noteoff.velocity != vel)
 					force = 0;
 		}
 	}
