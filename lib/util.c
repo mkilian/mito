@@ -33,46 +33,46 @@ int pairNotes(Track *t) {
 
 	track_rewind(t);
 	while ((e = track_step(t, 0)) != NULL)
-	switch (e->msg.generic.cmd & 0xf0) {
-	case NOTEON:
-		if (e->msg.noteon.velocity != 0) {
-			if (e->msg.noteon.duration == 0) {
-				nn = alloca(sizeof(*nn));
-				nn->n = notes;
-				nn->e = e;
-				notes = nn;
-				non++;
+		switch (e->msg.generic.cmd & 0xf0) {
+		case NOTEON:
+			if (e->msg.noteon.velocity != 0) {
+				if (e->msg.noteon.duration == 0) {
+					nn = alloca(sizeof(*nn));
+					nn->n = notes;
+					nn->e = e;
+					notes = nn;
+					non++;
+				}
+				break;
 			}
-			break;
-		}
-		/* NoteOn events with vel. 0 fall through the MFNoteOff case. */
-	case NOTEOFF:
-		if (!non)
-			/* NoteOff without any NoteOn, i.e. unmatched NoteOff */
-			noff++;
-		else {
-			nn = notes;
-			while (nn && (nn->e == NULL ||
-			nn->e->msg.noteon.chn != e->msg.noteon.chn ||
-			nn->e->msg.noteon.note != e->msg.noteon.note))
-			nn = nn->n;
-
-			if (!nn)
-				/* Unmatched NoteOff */
+			/* NoteOn events with vel. 0 fall through the MFNoteOff case. */
+		case NOTEOFF:
+			if (!non)
+				/* NoteOff without any NoteOn, i.e. unmatched NoteOff */
 				noff++;
 			else {
-				nn->e->msg.noteon.duration = e->time - nn->e->time;
-				nn->e->msg.noteon.release = e->msg.noteon.velocity;
-				nn->e = NULL;
-				track_delete(t);
-				track_step(t, 1);
-				non--;
+				nn = notes;
+				while (nn && (nn->e == NULL ||
+				    nn->e->msg.noteon.chn != e->msg.noteon.chn ||
+				    nn->e->msg.noteon.note != e->msg.noteon.note))
+					nn = nn->n;
+
+				if (!nn)
+					/* Unmatched NoteOff */
+					noff++;
+				else {
+					nn->e->msg.noteon.duration = e->time - nn->e->time;
+					nn->e->msg.noteon.release = e->msg.noteon.velocity;
+					nn->e = NULL;
+					track_delete(t);
+					track_step(t, 1);
+					non--;
+				}
 			}
+			break;
+		default:
+			break;
 		}
-		break;
-	default:
-		break;
-	}
 
 	return non + noff;
 }
