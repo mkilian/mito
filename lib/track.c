@@ -99,8 +99,9 @@ static void pack(Track *t) {
 		if (t->events[from].msg.generic.cmd == EMPTY)
 			from++;
 		else if (to < from) {
-			if (t->current == from) t->current = to;
-				t->events[to++] = t->events[from++];
+			if (t->current == from)
+				t->current = to;
+			t->events[to++] = t->events[from++];
 		} else
 			to++, from++;
 
