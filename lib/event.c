@@ -294,7 +294,7 @@ int write_message(MBUF *b, MFMessage *msg, unsigned char *rs) {
 			return write_vld(b, msg->systemexclusive.data);
 		case META:
 			return mbuf_put(b, msg->meta.type) != EOF &&
-			write_vld(b, msg->meta.data);
+				write_vld(b, msg->meta.data);
 		}
 	} else if (cmd >= 0x80) {
 		/* This is a channel voice message. */
@@ -319,14 +319,14 @@ int write_message(MBUF *b, MFMessage *msg, unsigned char *rs) {
 		case KEYPRESSURE:
 		case CONTROLCHANGE:
 			return mbuf_put(b, msg->noteoff.note) != EOF &&
-			mbuf_put(b, msg->noteoff.velocity) != EOF;
+				mbuf_put(b, msg->noteoff.velocity) != EOF;
 		case PROGRAMCHANGE:
 		case CHANNELPRESSURE:
 			return mbuf_put(b, msg->programchange.program) != EOF;
 		case PITCHWHEELCHANGE:
 			value = msg->pitchwheelchange.value + 0x2000;
 			return mbuf_put(b, (value >> 7) & 0x7f) != EOF &&
-					mbuf_put(b, value & 0x7f) != EOF ;
+				mbuf_put(b, value & 0x7f) != EOF ;
 		}
 	} else {
 		if (rs)
