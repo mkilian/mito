@@ -11,11 +11,12 @@
 #include "vld.h"
 
 static void usage(void) {
-	fputs("usage: mito [-hleqnm012c] [-o file] [-d div] {[file][@sl]}...\n"
+	fputs("usage: mito [-hleuqnm012c] [-o file] [-d div] {[file][@sl]}...\n"
 	    "overall options:\n"
 	    "    -h:  show score headers\n"
 	    "    -l:  show track lengths\n"
 	    "    -e:  show events\n"
+	    "    -u:  don't group noteon/noteoff events\n"
 	    "    -q:  accumulative(1-3): no warning, midi errors, other errors\n"
 	    "    -o:  write resulting output to `file'\n"
 	    "input:\n"
@@ -38,7 +39,8 @@ typedef enum{
 	NOHEADER	= 0x08,
 	MERGETRACKS	= 0x10,
 	CONCATTRACKS	= 0x20,
-	FIXGROUPS	= 0x40
+	FIXGROUPS	= 0x40,
+	UNGROUP		= 0x80
 } Flags;
 
 /* The filename to print in warning and error messages. */
@@ -480,7 +482,8 @@ static int dofile(const char *spec, int flags) {
 		if (tr1 >= 0)
 			adjusttracks(s, tr0, tr1);
 
-		group(s);
+		if (!(flags & UNGROUP))
+			group(s);
 
 		if (flags & MERGETRACKS)
 			mergetracks(s);
@@ -577,7 +580,7 @@ int main(int argc, char *argv[]) {
 	char *outname = NULL;
 
 	/* Parse command line arguments. */
-	while ((opt = getopt(argc, argv, ":hleqnmo:012cfd:")) != -1)
+	while ((opt = getopt(argc, argv, ":hleuqnmo:012cfd:")) != -1)
 		switch (opt) {
 		case 'h':
 			flags |= SHOWHEADERS;
@@ -587,6 +590,9 @@ int main(int argc, char *argv[]) {
 			break;
 		case 'e':
 			flags |= SHOWEVENTS;
+			break;
+		case 'u':
+			flags |= UNGROUP;;
 			break;
 		case 'f':
 			flags |= FIXGROUPS;
