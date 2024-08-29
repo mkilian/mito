@@ -121,6 +121,137 @@ static char *strdat(void *vld) {
 	return buf;
 }
 
+static void printevent(MFEvent *e) {
+	switch (e->msg.generic.cmd & 0xf0) {
+	case NOTEOFF:
+		midiprint(MPNote, "%8ld NoteOff %hd %hd %hd", e->time,
+		    e->msg.noteoff.chn, e->msg.noteoff.note,
+		    e->msg.noteoff.velocity);
+		return;
+	case NOTEON:
+		if (e->msg.noteon.duration)
+			midiprint(MPNote, "%8ld Note %hd %hd %hd %ld %hd", e->time,
+			    e->msg.noteon.chn, e->msg.noteon.note,
+			    e->msg.noteon.velocity,
+			    e->msg.noteon.duration, e->msg.noteon.release);
+		else
+			midiprint(MPNote, "%8ld NoteOn %hd %hd %hd", e->time,
+			    e->msg.noteon.chn, e->msg.noteon.note,
+			    e->msg.noteon.velocity);
+		return;
+	case KEYPRESSURE:
+		midiprint(MPNote, "%8ld KeyPressure %hd %hd %hd", e->time,
+		    e->msg.keypressure.chn, e->msg.keypressure.note,
+		    e->msg.keypressure.velocity);
+		return;
+	case CONTROLCHANGE:
+		midiprint(MPNote, "%8ld ControlChange %hd %hd %hd", e->time,
+		    e->msg.controlchange.chn,
+		    e->msg.controlchange.controller,
+		    e->msg.controlchange.value);
+		return;
+	case PROGRAMCHANGE:
+		midiprint(MPNote, "%8ld ProgramChange %hd %hd", e->time,
+		    e->msg.programchange.chn,
+		    e->msg.programchange.program);
+		return;
+	case CHANNELPRESSURE:
+		midiprint(MPNote, "%8ld ChannelPressure %hd %hd", e->time,
+		    e->msg.channelpressure.chn,
+		    e->msg.channelpressure.velocity);
+		return;
+	case PITCHWHEELCHANGE:
+		midiprint(MPNote, "%8ld PitchWheelChange %hd %hd", e->time,
+		    e->msg.pitchwheelchange.chn,
+		    e->msg.pitchwheelchange.value);
+		return;
+	}
+
+	switch (e->msg.generic.cmd) {
+	case SYSTEMEXCLUSIVE:
+		midiprint(MPNote, "%8ld SystemExclusive `%s'", e->time,
+		    strdat(e->msg.systemexclusive.data));
+		return;
+	case SYSTEMEXCLUSIVECONT:
+		midiprint(MPNote, "%8ld SystemExclusiveCont `%s'", e->time,
+		    strdat(e->msg.systemexclusivecont.data));
+		return;
+	case META:
+		midiprint(MPNote, "%8ld Meta %hd `%s'", e->time,
+		    e->msg.meta.type, strdat(e->msg.meta.data));
+		return;
+	case SEQUENCENUMBER:
+		midiprint(MPNote, "%8ld SequenceNumber %hu", e->time,
+		    e->msg.sequencenumber.sequencenumber);
+		return;
+	case TEXT:
+		midiprint(MPNote, "%8ld Text `%s'", e->time,
+		    strdat(e->msg.text.text));
+		return;
+	case COPYRIGHTNOTICE:
+		midiprint(MPNote, "%8ld CopyrightNotice `%s'", e->time,
+		    strdat(e->msg.copyrightnotice.text));
+		return;
+	case TRACKNAME:
+		midiprint(MPNote, "%8ld TrackName `%s'", e->time,
+		    strdat(e->msg.trackname.text));
+		return;
+	case INSTRUMENTNAME:
+		midiprint(MPNote, "%8ld InstrumentName `%s'", e->time,
+		    strdat(e->msg.instrumentname.text));
+		return;
+	case LYRIC:
+		midiprint(MPNote, "%8ld Lyric `%s'", e->time,
+		    strdat(e->msg.lyric.text));
+		return;
+	case MARKER:
+		midiprint(MPNote, "%8ld Marker `%s'", e->time,
+		    strdat(e->msg.marker.text));
+		return;
+	case CUEPOINT:
+		midiprint(MPNote, "%8ld CuePoint `%s'", e->time,
+		    strdat(e->msg.cuepoint.text));
+		return;
+	case PORTNUMBER:
+		midiprint(MPNote, "%8ld PortNumber %hd", e->time,
+		    e->msg.portnumber.port);
+		return;
+	case ENDOFTRACK:
+		midiprint(MPNote, "%8ld EndOfTrack", e->time);
+		return;
+	case SETTEMPO:
+		midiprint(MPNote, "%8ld SetTempo %ld", e->time,
+		    e->msg.settempo.tempo);
+		return;
+	case SMPTEOFFSET:
+		midiprint(MPNote, "%8ld SMPTEOffset %hd %hd %hd %hd %hd",
+		    e->time, e->msg.smpteoffset.hours,
+		    e->msg.smpteoffset.minutes,
+		    e->msg.smpteoffset.seconds,
+		    e->msg.smpteoffset.frames,
+		    e->msg.smpteoffset.subframes);
+		return;
+	case TIMESIGNATURE:
+		midiprint(MPNote, "%8ld TimeSignature %hd %hd %hd %hd",
+		    e->time, e->msg.timesignature.nominator,
+		    e->msg.timesignature.denominator,
+		    e->msg.timesignature.clocksperclick,
+		    e->msg.timesignature.ttperquarter);
+		return;
+	case KEYSIGNATURE:
+		midiprint(MPNote, "%8ld KeySignature %hd %hd", e->time,
+		    e->msg.keysignature.sharpsflats,
+		    e->msg.keysignature.minor);
+		return;
+	case SEQUENCERSPECIFIC:
+		midiprint(MPNote, "%8ld SequencerSpecific `%s'", e->time,
+		    strdat(e->msg.sequencerspecific.data));
+		return;
+	}
+
+	midiprint(MPNote, "%8ld Unknown %hu", e->time, e->msg.generic.cmd);
+}
+
 /* Print the track data of `s'. */
 static void showtracks(Score *s, int flags) {
 	MFEvent *e;
@@ -137,136 +268,8 @@ static void showtracks(Score *s, int flags) {
 
 	if (flags & SHOWEVENTS)
 		for (t = 0; t < s->ntrk; t++)
-			while ((e = track_step(s->tracks[t], 0))) {
-				switch (e->msg.generic.cmd & 0xf0) {
-				case NOTEOFF:
-					midiprint(MPNote, "%8ld NoteOff %hd %hd %hd", e->time,
-					    e->msg.noteoff.chn, e->msg.noteoff.note,
-					    e->msg.noteoff.velocity);
-					continue;
-				case NOTEON:
-					if (e->msg.noteon.duration)
-						midiprint(MPNote, "%8ld Note %hd %hd %hd %ld %hd", e->time,
-						    e->msg.noteon.chn, e->msg.noteon.note,
-						    e->msg.noteon.velocity,
-						    e->msg.noteon.duration, e->msg.noteon.release);
-					else
-						midiprint(MPNote, "%8ld NoteOn %hd %hd %hd", e->time,
-						    e->msg.noteon.chn, e->msg.noteon.note,
-						    e->msg.noteon.velocity);
-					continue;
-				case KEYPRESSURE:
-					midiprint(MPNote, "%8ld KeyPressure %hd %hd %hd", e->time,
-					    e->msg.keypressure.chn, e->msg.keypressure.note,
-					    e->msg.keypressure.velocity);
-					continue;
-				case CONTROLCHANGE:
-					midiprint(MPNote, "%8ld ControlChange %hd %hd %hd", e->time,
-					    e->msg.controlchange.chn,
-					    e->msg.controlchange.controller,
-					    e->msg.controlchange.value);
-					continue;
-				case PROGRAMCHANGE:
-					midiprint(MPNote, "%8ld ProgramChange %hd %hd", e->time,
-					    e->msg.programchange.chn,
-					    e->msg.programchange.program);
-					continue;
-				case CHANNELPRESSURE:
-					midiprint(MPNote, "%8ld ChannelPressure %hd %hd", e->time,
-					    e->msg.channelpressure.chn,
-					    e->msg.channelpressure.velocity);
-					continue;
-				case PITCHWHEELCHANGE:
-					midiprint(MPNote, "%8ld PitchWheelChange %hd %hd", e->time,
-					    e->msg.pitchwheelchange.chn,
-					    e->msg.pitchwheelchange.value);
-					continue;
-				}
-
-				switch (e->msg.generic.cmd) {
-				case SYSTEMEXCLUSIVE:
-					midiprint(MPNote, "%8ld SystemExclusive `%s'", e->time,
-					    strdat(e->msg.systemexclusive.data));
-					continue;
-				case SYSTEMEXCLUSIVECONT:
-					midiprint(MPNote, "%8ld SystemExclusiveCont `%s'", e->time,
-					    strdat(e->msg.systemexclusivecont.data));
-					continue;
-				case META:
-					midiprint(MPNote, "%8ld Meta %hd `%s'", e->time,
-					    e->msg.meta.type, strdat(e->msg.meta.data));
-					continue;
-				case SEQUENCENUMBER:
-					midiprint(MPNote, "%8ld SequenceNumber %hu", e->time,
-					    e->msg.sequencenumber.sequencenumber);
-					continue;
-				case TEXT:
-					midiprint(MPNote, "%8ld Text `%s'", e->time,
-					    strdat(e->msg.text.text));
-					continue;
-				case COPYRIGHTNOTICE:
-					midiprint(MPNote, "%8ld CopyrightNotice `%s'", e->time,
-					    strdat(e->msg.copyrightnotice.text));
-					continue;
-				case TRACKNAME:
-					midiprint(MPNote, "%8ld TrackName `%s'", e->time,
-					    strdat(e->msg.trackname.text));
-					continue;
-				case INSTRUMENTNAME:
-					midiprint(MPNote, "%8ld InstrumentName `%s'", e->time,
-					    strdat(e->msg.instrumentname.text));
-					continue;
-				case LYRIC:
-					midiprint(MPNote, "%8ld Lyric `%s'", e->time,
-					    strdat(e->msg.lyric.text));
-					continue;
-				case MARKER:
-					midiprint(MPNote, "%8ld Marker `%s'", e->time,
-					    strdat(e->msg.marker.text));
-					continue;
-				case CUEPOINT:
-					midiprint(MPNote, "%8ld CuePoint `%s'", e->time,
-					    strdat(e->msg.cuepoint.text));
-					continue;
-				case PORTNUMBER:
-					midiprint(MPNote, "%8ld PortNumber %hd", e->time,
-					    e->msg.portnumber.port);
-					continue;
-				case ENDOFTRACK:
-					midiprint(MPNote, "%8ld EndOfTrack", e->time);
-					continue;
-				case SETTEMPO:
-					midiprint(MPNote, "%8ld SetTempo %ld", e->time,
-					    e->msg.settempo.tempo);
-					continue;
-				case SMPTEOFFSET:
-					midiprint(MPNote, "%8ld SMPTEOffset %hd %hd %hd %hd %hd",
-					    e->time, e->msg.smpteoffset.hours,
-					    e->msg.smpteoffset.minutes,
-					    e->msg.smpteoffset.seconds,
-					    e->msg.smpteoffset.frames,
-					    e->msg.smpteoffset.subframes);
-					continue;
-				case TIMESIGNATURE:
-					midiprint(MPNote, "%8ld TimeSignature %hd %hd %hd %hd",
-					    e->time, e->msg.timesignature.nominator,
-					    e->msg.timesignature.denominator,
-					    e->msg.timesignature.clocksperclick,
-					    e->msg.timesignature.ttperquarter);
-					continue;
-				case KEYSIGNATURE:
-					midiprint(MPNote, "%8ld KeySignature %hd %hd", e->time,
-					    e->msg.keysignature.sharpsflats,
-					    e->msg.keysignature.minor);
-					continue;
-				case SEQUENCERSPECIFIC:
-					midiprint(MPNote, "%8ld SequencerSpecific `%s'", e->time,
-					    strdat(e->msg.sequencerspecific.data));
-					continue;
-				}
-
-				midiprint(MPNote, "%8ld Unknown %hu", e->time, e->msg.generic.cmd);
-			}
+			while ((e = track_step(s->tracks[t], 0)))
+				printevent(e);
 }
 
 /* Delete all tracks that are not within the given range. */
