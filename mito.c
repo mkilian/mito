@@ -212,9 +212,13 @@ static void printevent(MFEvent *e) {
 		midiprint(MPNote, "%8ld CuePoint `%s'", e->time,
 		    strdat(e->msg.cuepoint.text));
 		return;
-	case PORTNUMBER:
-		midiprint(MPNote, "%8ld PortNumber %hd", e->time,
-		    e->msg.portnumber.port);
+	case PREFIXCHANNEL:
+		midiprint(MPNote, "%8ld PrefixChannel %hd", e->time,
+		    e->msg.prefixchannel.channel);
+		return;
+	case PREFIXPORT:
+		midiprint(MPNote, "%8ld PrefixPort %hd", e->time,
+		    e->msg.prefixport.port);
 		return;
 	case ENDOFTRACK:
 		midiprint(MPNote, "%8ld EndOfTrack", e->time);
