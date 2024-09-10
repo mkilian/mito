@@ -80,7 +80,7 @@ static int tryMThd(MBUF *b, CHUNK *c) {
 
 /* As above, but for tracks. */
 static int tryMTrk(MBUF *b, CHUNK *c) {
-	long size;
+	unsigned long size;
 	unsigned long p = mbuf_pos(b);
 
 	if (!mbuf_request(b, 8) ||
@@ -93,12 +93,6 @@ static int tryMTrk(MBUF *b, CHUNK *c) {
 	}
 
 	size = mbuf_get(b) << 24 | mbuf_get(b) << 16 | mbuf_get(b) << 8 | mbuf_get(b);
-
-	if (size < 0) {
-		midiprint(MPError, "skipping track: negative size %ld", size);
-		mbuf_set(b, p);
-		return 0;
-	}
 
 	c->type = MTrk;
 	c->hdr.mtrk.size = size;
