@@ -34,13 +34,13 @@ typedef enum {
 	SEQUENCENUMBER		= 0x00,
 	TEXT			= 0x01,
 	COPYRIGHTNOTICE		= 0x02,
-	TRACKNAME		= 0x03,   /* This is also used as sequence name. */
+	TRACKNAME		= 0x03,	/* This is also used as sequence name. */
 	INSTRUMENTNAME		= 0x04,
 	LYRIC			= 0x05,
 	MARKER			= 0x06,
 	CUEPOINT		= 0x07,
 	PREFIXCHANNEL		= 0x20,
-	PREFIXPORT		= 0x21,
+	PREFIXPORT		= 0x21,	/* Source (standard) unknown. */
 	ENDOFTRACK		= 0x2f,
 	SETTEMPO		= 0x51,
 	SMPTEOFFSET		= 0x54,

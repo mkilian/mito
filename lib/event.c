@@ -50,6 +50,8 @@ static int convert_meta(MFMessage *msg) {
 	case PREFIXCHANNEL:
 		if (length > 1)
 			midiprint(MPWarn, "prefixchannel: long data");
+		if (data[0] > 15)
+			midiprint(MPWarn, "prefixport: port too large");
 		msg->prefixchannel.type = msg->meta.type;
 		msg->prefixchannel.channel = data[0];
 		result = 1;
@@ -57,8 +59,6 @@ static int convert_meta(MFMessage *msg) {
 	case PREFIXPORT:
 		if (length > 1)
 			midiprint(MPWarn, "prefixport: long data");
-		if (data[0] > 15)
-			midiprint(MPWarn, "prefixport: port too large");
 		msg->prefixport.type = msg->meta.type;
 		msg->prefixport.port = data[0];
 		result = 1;
