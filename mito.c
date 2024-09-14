@@ -7,7 +7,11 @@
 #include <unistd.h>
 #include <assert.h>
 
-#include "midi.h"
+#include "chunk.h"
+#include "event.h"
+#include "print.h"
+#include "score.h"
+#include "util.h"
 #include "vld.h"
 
 static void usage(void) {

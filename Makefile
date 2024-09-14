@@ -15,6 +15,6 @@ mito:					mito.o -lmidi
 
 # DO NOT DELETE
 # AUTOMATICALLY GENERATED DEPENDENCIES
-mito.o: mito.c include/midi.h include/print.h include/buffer.h \
- include/chunk.h include/event.h include/score.h include/track.h \
- include/util.h include/vld.h
+mito.o: mito.c include/chunk.h include/buffer.h include/event.h \
+  include/print.h include/score.h include/track.h include/util.h \
+  include/vld.h
