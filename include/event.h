@@ -39,8 +39,8 @@ typedef enum {
 	LYRIC			= 0x05,
 	MARKER			= 0x06,
 	CUEPOINT		= 0x07,
-	PREFIXCHANNEL		= 0x20,
-	PREFIXPORT		= 0x21,	/* Source (standard) unknown. */
+	CHANNELPREFIX		= 0x20,
+	PORTPREFIX		= 0x21,	/* Source (standard) unknown. */
 	ENDOFTRACK		= 0x2f,
 	SETTEMPO		= 0x51,
 	SMPTEOFFSET		= 0x54,
@@ -182,12 +182,12 @@ typedef struct {
 typedef struct {
 	unsigned char type;
 	unsigned char channel;
-} MFPrefixChannel;
+} MFChannelPrefix;
 
 typedef struct {
 	unsigned char type;
 	unsigned char port;
-} MFPrefixPort;
+} MFPortPrefix;
 
 typedef struct {
 	unsigned char type;
@@ -263,8 +263,8 @@ typedef union {
 	MFLyric			lyric;
 	MFMarker		marker;
 	MFCuePoint		cuepoint;
-	MFPrefixChannel		prefixchannel;
-	MFPrefixPort		prefixport;
+	MFChannelPrefix		channelprefix;
+	MFPortPrefix		portprefix;
 	MFEndOfTrack		endoftrack;
 	MFSetTempo		settempo;
 	MFSMPTEOffset		smpteoffset;

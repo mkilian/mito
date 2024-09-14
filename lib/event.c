@@ -47,20 +47,20 @@ static int convert_meta(MFMessage *msg) {
 		vld = NULL;
 		result = 1;
 		break;
-	case PREFIXCHANNEL:
+	case CHANNELPREFIX:
 		if (length > 1)
-			midiprint(MPWarn, "prefixchannel: long data");
+			midiprint(MPWarn, "channelprefix: long data");
 		if (data[0] > 15)
-			midiprint(MPWarn, "prefixport: port too large");
-		msg->prefixchannel.type = msg->meta.type;
-		msg->prefixchannel.channel = data[0];
+			midiprint(MPWarn, "portprefix: port too large");
+		msg->channelprefix.type = msg->meta.type;
+		msg->channelprefix.channel = data[0];
 		result = 1;
 		break;
-	case PREFIXPORT:
+	case PORTPREFIX:
 		if (length > 1)
-			midiprint(MPWarn, "prefixport: long data");
-		msg->prefixport.type = msg->meta.type;
-		msg->prefixport.port = data[0];
+			midiprint(MPWarn, "portprefix: long data");
+		msg->portprefix.type = msg->meta.type;
+		msg->portprefix.port = data[0];
 		result = 1;
 		break;
 	case ENDOFTRACK:
@@ -359,12 +359,12 @@ int write_message(MBUF *b, MFMessage *msg, unsigned char *rs) {
 		case MARKER:
 		case CUEPOINT:
 			return write_vld(b, msg->text.text);
-		case PREFIXCHANNEL:
+		case CHANNELPREFIX:
 			return write_vlq(b, 1) &&
-				mbuf_put(b, msg->prefixchannel.channel) != EOF;
-		case PREFIXPORT:
+				mbuf_put(b, msg->channelprefix.channel) != EOF;
+		case PORTPREFIX:
 			return write_vlq(b, 1) &&
-				mbuf_put(b, msg->prefixport.port) != EOF;
+				mbuf_put(b, msg->portprefix.port) != EOF;
 		case ENDOFTRACK:
 			return write_vlq(b, 0);
 		case SETTEMPO:
