@@ -54,18 +54,6 @@ SED       = sed
 MV        = mv -f
 ECHO      = echo
 
-# Keep co silent. The `REV' variable may be used to extract a specific
-# (symbolic) revision. This must be specified when cheching out, i.e.
-# by `make depend REV=V1/3'.
-COFLAGS   = -q -r$(REV)
-
-# This avoids the `co' messages from make.
-CO        = @co
-
-# As for co, a revision may be specified when making distclean.
-# The version handling should be automated...
-CLNFLAGS  = -r$(REV)
-
 # Names of all C source files (for target `depend'), derived from the
 # variable `OBJS'.
 CFILES    = $(OBJS:.o=.c)
@@ -90,15 +78,10 @@ LIBS      =
 # This defaults to be empty, too.
 SUBDIRS   =
 
-# Names of all files in the `RCS' directory. This is mainly used in the
-# target `co', which is needed by `depend'. Since this is a variable
-# intended for internal use only, it's name is all lowercase.
-rcsfiles  = $(notdir $(wildcard RCS/*))
-
 # Names of recursive targets. Whenever one of this targets is to be
 # made, the same target is made in all directories specified in
 # `SUBDIRS', first.
-recursive = all depend undepend install clean rcsclean realclean distclean \
+recursive = all depend undepend install clean realclean distclean \
 						foolishclean
 
 
@@ -125,16 +108,11 @@ install::
 clean::
 	$(RM) *.o core errlist gmon.out gmon.sum
 
-# Cleaning up unmodified source files.
-.PHONY: rcsclean
-rcsclean::
-	@rcsclean $(CLNFLAGS)
-
-# Cleaning up everything. In addition to making clean and rcsclean, this
+# Cleaning up everything. In addition to making clean, this
 # deletes all programs (defined in `PROGS'), libraries and backup
 # copies.
 .PHONY: realclean distclean
-realclean distclean:: clean rcsclean
+realclean distclean:: clean
 	$(RM) $(PROGS) *.a *.bak *~ TAGS tags REFS refs
 
 # Yes, you can make even more then distclean :-)
@@ -144,7 +122,7 @@ foolishclean:: undepend distclean
 
 # Automatically generate make dependencies.
 .PHONY: depend
-depend:: co
+depend::
 	@$(MV) Makefile Makefile.bak &&                                     \
 		( $(SED) '/^# DO NOT DELETE/,$$d' < Makefile.bak > Makefile &&    \
 			$(ECHO) '# DO NOT DELETE' >> Makefile &&                        \
@@ -159,9 +137,3 @@ undepend::
 	@$(MV) Makefile Makefile.bak &&                               \
 	$(SED) '/^# DO NOT DELETE/,$$d' < Makefile.bak > Makefile ||  \
 	$(MV) Makefile.bak Makefile
-
-
-# This target (not recursive) checks out all RCS files. It is only of
-# use for bootstrapping `depend'.
-.PHONY: co
-co: $(rcsfiles:,v=)
