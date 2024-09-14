@@ -1,9 +1,9 @@
 /* Managing tracks, i.e. sequences of events. */
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 
 #include "track.h"
 

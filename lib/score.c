@@ -1,11 +1,11 @@
 /* Reading and writing of complete scores. */
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
 
-#include "print.h"
 #include "chunk.h"
+#include "print.h"
 #include "score.h"
 
 /* Create a new score. */

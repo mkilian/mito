@@ -1,13 +1,13 @@
 /* Read midi file messages and events. */
 
+#include <errno.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
-#include <errno.h>
 
-#include "print.h"
 #include "event.h"
+#include "print.h"
 #include "vld.h"
 
 /*

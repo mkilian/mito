@@ -1,13 +1,13 @@
 /* Get header and track chunks of standard midi files. */
 
+#include <errno.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
-#include <errno.h>
 
-#include "print.h"
 #include "chunk.h"
+#include "print.h"
 
 /* Supported chunk types. */
 const unsigned long MThd = 'M' << 24 | 'T' << 16 | 'h' << 8 | 'd';
