@@ -1,4 +1,5 @@
 /* mito --- the midi tool */
+/* XXX: the order of events (when using -e) is not deterministic! */
 
 #include <assert.h>
 #include <errno.h>
