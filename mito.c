@@ -429,13 +429,15 @@ static int dofile(const char *spec, int flags) {
 	else if (sscanf(spec, "%[^@]@.%lu", name, &tr0) == 2)
 		tr1 = tr0;
 	else
-		strcpy(name, spec);
+		/* XXX: check for truncation */
+		strlcpy(name, spec, sizeof(name));
 
 	if (!*name || !strcmp(name, "-")) {
 		warnname = "-";
 		*name = 0;
 	} else {
-		strcpy(_name, name);
+		/* XXX: check for truncation */
+		strlcpy(_name, name, sizeof(_name));
 		warnname = _name;
 	}
 
