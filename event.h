@@ -305,7 +305,7 @@ void clear_message(MFMessage *msg);
  * An *event* is a message together with the message's time.
  */
 typedef struct {
-	long time;
+	unsigned long time;
 	MFMessage msg;
 } MFEvent;
 
