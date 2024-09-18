@@ -556,15 +556,6 @@ static int dofile(const char *spec, int flags) {
 	return error ? 1 : 0;
 }
 
-static void printstat(void) {
-	fprintf(stderr, "maxused:  %lu\n"
-		"maxalloc: %lu\n"
-		"waisted:  %lu\n",
-		maxused * sizeof(MFEvent),
-		maxallocated * sizeof(MFEvent),
-		(maxallocated - maxused) * sizeof(MFEvent));
-}
-
 int main(int argc, char *argv[]) {
 	unsigned long p = 0;
 	int opt;
@@ -643,8 +634,6 @@ int main(int argc, char *argv[]) {
 
 		p = mbuf_pos(outb);
 	}
-
-	atexit(printstat);
 
 	if (!argc)
 		error = dofile(NULL, flags);
