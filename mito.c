@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <vis.h>
 
 #include "chunk.h"
 #include "event.h"
@@ -94,34 +95,14 @@ static void print(MPLevel level, const char *fmt, va_list args) {
 
 /* Convert a vld into a printable string. */
 static char *strdat(void *vld) {
-	static char buf[65];
+	static char buf[1024 * 4 + 1];
 	long length = vld_size(vld);
-	const unsigned char *data = vld_data(vld);
-	int i;
-
-	for (i = 0; length > 0 && i < 65 - 4; i++, length--, data++)
-		switch (*data) {
-		case '\\':  buf[i++] = '\\'; buf[i] = '\\'; break;
-		case '\a':  buf[i++] = '\\'; buf[i] = 'a'; break;
-		case '\b':  buf[i++] = '\\'; buf[i] = 'b'; break;
-		case '\f':  buf[i++] = '\\'; buf[i] = 'f'; break;
-		case '\n':  buf[i++] = '\\'; buf[i] = 'n'; break;
-		case '\r':  buf[i++] = '\\'; buf[i] = 'r'; break;
-		case '\t':  buf[i++] = '\\'; buf[i] = 't'; break;
-		case '\v':  buf[i++] = '\\'; buf[i] = 'b'; break;
-		default:
-			if (*data < ' ') {
-				sprintf(buf + i, "\\%03hu", *data);
-				i += 3;
-			} else
-				buf[i] = *data;
-		}
-
-	if (length > 0)
-		strcpy(buf + i, "...");
-	else
-		buf[i] = 0;
-
+	int trunc = length > 1024;
+	if (trunc)
+		length = 1024 - 3;
+	strvisx(buf, vld_data(vld), length, VIS_CSTYLE);
+	if (trunc)
+		strlcat (buf, "...", sizeof(buf));
 	return buf;
 }
 
