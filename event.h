@@ -302,7 +302,8 @@ int write_message(MBUF *b, MFMessage *msg, unsigned char *rs);
 void clear_message(MFMessage *msg);
 
 /*
- * An *event* is a message together with the message's time.
+ * An *event* is a message together with the message's (absolute,
+ * i.e. relative to the start of the track) time.
  */
 typedef struct {
 	unsigned long time;
