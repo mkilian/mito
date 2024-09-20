@@ -515,7 +515,8 @@ static int dofile(const char *spec, int flags) {
 			if (tr1 >= 0)
 				adjusttracks(s, tr0, tr1);
 
-			group(s);
+			if (!(flags & UNGROUP))
+				group(s);
 
 			if (flags & MERGETRACKS)
 				mergetracks(s);
