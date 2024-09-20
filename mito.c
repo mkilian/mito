@@ -308,14 +308,14 @@ static void mergetracks(Score *s) {
 
 	for (t = 1; t < s->ntrk; t++) {
 		track_rewind(s->tracks[t]);
-		while ((e = track_step(s->tracks[t], 0)))
+		while ((e = track_step(s->tracks[t], 0))) {
 			if (!track_insert(s->tracks[0], e)) {
 				midiprint(MPFatal, "%s", strerror(errno));
 				exit(EXIT_FAILURE);
 			}
 			else
 				e->msg.empty.type = EMPTY;
-
+		}
 		track_clear(s->tracks[t]);
 	}
 
