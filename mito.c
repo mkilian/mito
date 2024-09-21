@@ -210,8 +210,9 @@ static void printevent(MFEvent *e) {
 		midiprint(MPNote, "%8ld EndOfTrack", e->time);
 		return;
 	case SETTEMPO:
-		midiprint(MPNote, "%8ld SetTempo %ld", e->time,
-		    e->msg.settempo.tempo);
+		midiprint(MPNote, "%8ld SetTempo %ld (%ld bpm)", e->time,
+		    e->msg.settempo.tempo,
+		    60000000 / e->msg.settempo.tempo);
 		return;
 	case SMPTEOFFSET:
 		midiprint(MPNote, "%8ld SMPTEOffset %hd %hd %hd %hd %hd",
