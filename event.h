@@ -195,7 +195,8 @@ typedef struct {
 
 typedef struct {
 	unsigned char type;
-	long tempo;	/* 24 bit quantity; microseconds per midi quarternote */
+	unsigned long tempo;	/* 24 bit quantity; microseconds per
+				 * midi quarternote */
 } MFSetTempo;
 
 typedef struct {
