@@ -243,9 +243,26 @@ static void printevent(MFEvent *e) {
 	midiprint(MPNote, "%8ld Unknown %hu", e->time, e->msg.generic.cmd);
 }
 
+/* Sleep for the given division, tempo and delta time. */
+/* XXX use clock_gettime with CLOCK_MONOTONIC to avoid glitches. */
+static void msleep(int div, unsigned long tempo, unsigned long dt) {
+	double usec;
+	unsigned int sec;
+	if (!dt)
+		return;
+	usec = 1.0 * tempo * dt / div;
+	if (usec > 1000000) {
+		sec = usec / 1000000;
+		usec -= 1000000 * sec;
+		sleep(sec);
+	}
+	usleep(usec);
+}
+
 /* Print the track data of `s'. */
 static void showtracks(Score *s, int flags) {
 	MFEvent *e;
+	unsigned long tempo = 500000;	/* 120 bpm */
 	long t;
 
 	for (t = 0; t < s->ntrk; t++) {
@@ -257,10 +274,20 @@ static void showtracks(Score *s, int flags) {
 			midiprint(MPNote, "       %7lu", ne);
 	}
 
-	if (flags & SHOWEVENTS)
-		for (t = 0; t < s->ntrk; t++)
-			while ((e = track_step(s->tracks[t], 0)))
-				printevent(e);
+	if (!(flags & SHOWEVENTS))
+		return;
+
+	for (t = 0; t < s->ntrk; t++) {
+		unsigned long lastt = 0;
+		while ((e = track_step(s->tracks[t], 0))) {
+			assert (e->time >= lastt);
+			msleep(s->div, tempo, e->time - lastt);
+			lastt = e->time;
+			if (e->msg.generic.cmd == SETTEMPO)
+				tempo = e->msg.settempo.tempo;
+			printevent(e);
+		}
+	}
 }
 
 /* Delete all tracks that are not within the given range. */
