@@ -17,7 +17,7 @@
 #include "vld.h"
 
 static void usage(void) {
-	fputs("usage: mito [-hleuqnm012c] [-o file] [-d div] {[file][@sl]}...\n"
+	fputs("usage: mito [-hleuqtnm012c] [-o file] [-d div] {[file][@sl]}...\n"
 	    "overall options:\n"
 	    "    -h:  show score headers\n"
 	    "    -l:  show track lengths\n"
@@ -25,6 +25,7 @@ static void usage(void) {
 	    "    -u:  don't group noteon/noteoff events\n"
 	    "    -q:  accumulative(1-3): no warning, midi errors, other errors\n"
 	    "    -o:  write resulting output to `file'\n"
+	    "    -t:  print events in real time\n"
 	    "input:\n"
 	    "    -m: merge all tracks of each single score\n"
 	    "    -f: fix nested / unmatched noteon/noteoff groups\n"
@@ -39,14 +40,15 @@ static void usage(void) {
 
 /* Command line flags, bitwise coded. */
 typedef enum{
-	SHOWHEADERS	= 0x01,
-	SHOWTLENGTHS	= 0x02,
-	SHOWEVENTS	= 0x04,
-	NOHEADER	= 0x08,
-	MERGETRACKS	= 0x10,
-	CONCATTRACKS	= 0x20,
-	FIXGROUPS	= 0x40,
-	UNGROUP		= 0x80
+	SHOWHEADERS	= 0x001,
+	SHOWTLENGTHS	= 0x002,
+	SHOWEVENTS	= 0x004,
+	NOHEADER	= 0x008,
+	MERGETRACKS	= 0x010,
+	CONCATTRACKS	= 0x020,
+	FIXGROUPS	= 0x040,
+	UNGROUP		= 0x080,
+	TIMED		= 0x100
 } Flags;
 
 /* The filename to print in warning and error messages. */
@@ -281,7 +283,8 @@ static void showtracks(Score *s, int flags) {
 		unsigned long lastt = 0;
 		while ((e = track_step(s->tracks[t], 0))) {
 			assert (e->time >= lastt);
-			msleep(s->div, tempo, e->time - lastt);
+			if (flags & TIMED)
+				msleep(s->div, tempo, e->time - lastt);
 			lastt = e->time;
 			if (e->msg.generic.cmd == SETTEMPO)
 				tempo = e->msg.settempo.tempo;
@@ -595,7 +598,7 @@ int main(int argc, char *argv[]) {
 	char *outname = NULL;
 
 	/* Parse command line arguments. */
-	while ((opt = getopt(argc, argv, ":hleuqnmo:012cfd:")) != -1)
+	while ((opt = getopt(argc, argv, ":hleuqtnmo:012cfd:")) != -1)
 		switch (opt) {
 		case 'h':
 			flags |= SHOWHEADERS;
@@ -614,6 +617,9 @@ int main(int argc, char *argv[]) {
 			break;
 		case 'q':
 			quiet++;
+			break;
+		case 't':
+			flags |= TIMED;
 			break;
 		case 'n':
 			flags |= NOHEADER;
