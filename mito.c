@@ -38,18 +38,16 @@ static void usage(void) {
 	exit(EXIT_FAILURE);
 }
 
-/* Command line flags, bitwise coded. */
-typedef enum{
-	SHOWHEADERS	= 0x001,
-	SHOWTLENGTHS	= 0x002,
-	SHOWEVENTS	= 0x004,
-	NOHEADER	= 0x008,
-	MERGETRACKS	= 0x010,
-	CONCATTRACKS	= 0x020,
-	FIXGROUPS	= 0x040,
-	UNGROUP		= 0x080,
-	TIMED		= 0x100
-} Flags;
+/* Command line flags. */
+static int f_showheaders = 0;
+static int f_showtlengths = 0;
+static int f_showevents = 0;
+static int f_noheader = 0;
+static int f_mergetracks = 0;
+static int f_concattracks = 0;
+static int f_fixgroups = 0;
+static int f_ungroup = 0;
+static int f_timed = 0;
 
 /* The filename to print in warning and error messages. */
 static char *warnname = NULL;
@@ -262,7 +260,7 @@ static void msleep(int div, unsigned long tempo, unsigned long dt) {
 }
 
 /* Print the track data of `s'. */
-static void showtracks(Score *s, int flags) {
+static void showtracks(Score *s) {
 	MFEvent *e;
 	unsigned long tempo = 500000;	/* 120 bpm */
 	long t;
@@ -272,18 +270,18 @@ static void showtracks(Score *s, int flags) {
 
 		track_rewind(s->tracks[t]);
 
-		if (flags & SHOWTLENGTHS)
+		if (f_showtlengths)
 			midiprint(MPNote, "       %7lu", ne);
 	}
 
-	if (!(flags & SHOWEVENTS))
+	if (!f_showevents)
 		return;
 
 	for (t = 0; t < s->ntrk; t++) {
 		unsigned long lastt = 0;
 		while ((e = track_step(s->tracks[t], 0))) {
 			assert (e->time >= lastt);
-			if (flags & TIMED)
+			if (f_timed)
 				msleep(s->div, tempo, e->time - lastt);
 			lastt = e->time;
 			if (e->msg.generic.cmd == SETTEMPO)
@@ -425,7 +423,7 @@ static int write_tracks(MBUF *b, Score *s, int concat) {
 }
 
 /* Handle one filespec. */
-static int dofile(const char *spec, int flags) {
+static int dofile(const char *spec) {
 	FILE *f = stdin;
 	static char _name[FILENAME_MAX];
 	static char name[FILENAME_MAX];
@@ -508,16 +506,16 @@ static int dofile(const char *spec, int flags) {
 		if (tr1 >= 0)
 			adjusttracks(s, tr0, tr1);
 
-		if (!(flags & UNGROUP))
+		if (!f_ungroup)
 			group(s);
 
-		if (flags & MERGETRACKS)
+		if (f_mergetracks)
 			mergetracks(s);
 
-		if (flags & SHOWHEADERS)
+		if (f_showheaders)
 			midiprint(MPNote, "%s(%d): %7d %7d %7d",
 			    warnname, scorenum, s->fmt, s->ntrk, s->div);
-		else if (flags & (SHOWTLENGTHS | SHOWEVENTS))
+		else if (f_showtlengths || f_showevents)
 			midiprint(MPNote, "%s(%d):", warnname, scorenum);
 
 		if (!outdiv)
@@ -525,12 +523,12 @@ static int dofile(const char *spec, int flags) {
 		if (outformat < 0)
 			outformat = s->fmt;
 
-		showtracks(s, flags);
+		showtracks(s);
 
 		if (outb) {
 			ungroup(s);
-			write_tracks(outb, s, flags & CONCATTRACKS);
-			if (flags & CONCATTRACKS)
+			write_tracks(outb, s, f_concattracks);
+			if (f_concattracks)
 				outntrk++;
 			else
 				outntrk += s->ntrk;
@@ -546,16 +544,16 @@ static int dofile(const char *spec, int flags) {
 			if (tr1 >= 0)
 				adjusttracks(s, tr0, tr1);
 
-			if (!(flags & UNGROUP))
+			if (!f_ungroup)
 				group(s);
 
-			if (flags & MERGETRACKS)
+			if (f_mergetracks)
 				mergetracks(s);
 
-			if (flags & SHOWHEADERS)
+			if (f_showheaders)
 				midiprint(MPNote, "%s(%d): %7d %7d %7d",
 				    warnname, scorenum, s->fmt, s->ntrk, s->div);
-			else if (flags & (SHOWTLENGTHS | SHOWEVENTS))
+			else if (f_showtlengths || f_showevents)
 				midiprint(MPNote, "%s(%d):", warnname, scorenum);
 
 			if (!outdiv)
@@ -563,12 +561,12 @@ static int dofile(const char *spec, int flags) {
 			if (outformat < 0)
 				outformat = s->fmt;
 
-			showtracks(s, flags);
+			showtracks(s);
 
 			if (outb) {
 				ungroup(s);
-				write_tracks(outb, s, flags & CONCATTRACKS);
-				if (flags & CONCATTRACKS)
+				write_tracks(outb, s, f_concattracks);
+				if (f_concattracks)
 					outntrk++;
 				else
 					outntrk += s->ntrk;
@@ -601,31 +599,31 @@ int main(int argc, char *argv[]) {
 	while ((opt = getopt(argc, argv, ":hleuqtnmo:012cfd:")) != -1)
 		switch (opt) {
 		case 'h':
-			flags |= SHOWHEADERS;
+			f_showheaders = 1;
 			break;
 		case 'l':
-			flags |= SHOWTLENGTHS;
+			f_showtlengths = 1;
 			break;
 		case 'e':
-			flags |= SHOWEVENTS;
+			f_showevents = 1;
 			break;
 		case 'u':
-			flags |= UNGROUP;;
+			f_ungroup = 1;
 			break;
 		case 'f':
-			flags |= FIXGROUPS;
+			f_fixgroups = 1;
 			break;
 		case 'q':
 			quiet++;
 			break;
 		case 't':
-			flags |= TIMED;
+			f_timed = 1;
 			break;
 		case 'n':
-			flags |= NOHEADER;
+			f_noheader = 1;
 			break;
 		case 'm':
-			flags |= MERGETRACKS;
+			f_mergetracks = 1;
 			break;
 		case 'o':
 			outname = optarg;
@@ -640,7 +638,7 @@ int main(int argc, char *argv[]) {
 			outformat = 2;
 			break;
 		case 'c':
-			flags |= CONCATTRACKS;
+			f_concattracks = 1;
 			break;
 		case 'd':
 			if (sscanf(optarg, "%d", &outdiv) != 1 || !outdiv)
@@ -660,7 +658,7 @@ int main(int argc, char *argv[]) {
 			return EXIT_FAILURE;
 		}
 
-		if (!(flags & NOHEADER) &&
+		if (!f_noheader &&
 		    /* This will be rewritten later to insert the correct values. */
 		    !write_MThd(outb, 0, 0, 0)) {
 			perror(outname);
@@ -671,24 +669,24 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (!argc)
-		error = dofile(NULL, flags);
+		error = dofile(NULL);
 	else
 		while (argc--)
-			error |= dofile(*argv++, flags);
+			error |= dofile(*argv++);
 
 	if (outb)
 		p = mbuf_pos(outb) - p;
 
 	if (error)
 		return EXIT_FAILURE;
-	else if (outb && !(flags & NOHEADER) && mbuf_set(outb, 0) != 0) {
+	else if (outb && !f_noheader && mbuf_set(outb, 0) != 0) {
 		perror("rewinding buffer");
 		return EXIT_FAILURE;
-	} else if (outb && !(flags & NOHEADER) &&
+	} else if (outb && !f_noheader &&
 			!write_MThd(outb, outformat, outntrk, outdiv)) {
 		perror(outname);
 		return EXIT_FAILURE;
-	} else if (outb && (flags & CONCATTRACKS) && !write_MTrk(outb, p)) {
+	} else if (outb && f_concattracks && !write_MTrk(outb, p)) {
 		perror(outname);
 		return EXIT_FAILURE;
 	} else if (outb && !(outf = fopen(outname, "wb"))) {
