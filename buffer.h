@@ -40,7 +40,7 @@ unsigned long mbuf_pos(MBUF *b);
  * Returns the new position which may be different from `pos' if `pos'
  * is out of range.
  */
-unsigned long mbuf_set(MBUF *b, unsigned long pos);
+unsigned long mbuf_set(MBUF *b, long pos);
 
 /*
  * Returns nonzero if the buffer contains at least n bytes from the

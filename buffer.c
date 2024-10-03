@@ -79,7 +79,7 @@ unsigned long mbuf_pos(MBUF *_b) {
  * Returns the new position which may be different from `pos' if `pos'
  * is out of range.
  */
-unsigned long mbuf_set(MBUF *_b, unsigned long pos) {
+unsigned long mbuf_set(MBUF *_b, long pos) {
 	_MBUF *b = (_MBUF*)_b;
 	if (pos < 0)
 		pos = b->n + pos;
