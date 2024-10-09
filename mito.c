@@ -333,7 +333,7 @@ static void msleep(int div, unsigned long tempo, unsigned long dt) {
 			err(1, NULL);
 }
 
-/* Print the track data of `s'. */
+/* Output the track data of `s'. */
 static void showtracks(Score *s) {
 	MFEvent *e;
 	struct mio_hdl *hdl;
