@@ -359,9 +359,9 @@ static void showtracks(Score *s) {
 		unsigned long lastt = 0;
 		while (!stop && (e = track_step(s->tracks[t], 0))) {
 			unsigned long dt = e->time - lastt;
+			lastt = e->time;
 			if (f_timed && dt)
 				msleep(s->div, tempo, dt);
-			lastt = e->time;
 			if (e->msg.generic.cmd == SETTEMPO)
 				tempo = e->msg.settempo.tempo;
 			if (f_showevents)
