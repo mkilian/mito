@@ -676,7 +676,6 @@ int main(int argc, char *argv[]) {
 	unsigned long p = 0;
 	int opt;
 	int error = 0;
-	int flags = 0;
 
 	FILE *outf;
 	char *outname = NULL;
