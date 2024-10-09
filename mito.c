@@ -417,6 +417,10 @@ static void ungroup(Score *s) {
 }
 
 /* Merge all the tracks of `s' into one. */
+/* XXX: there are smf files out in the wild containing the same event at
+ * the same time. Those events should be removed (except for the first
+ * occurence).
+ */
 static void mergetracks(Score *s) {
 	MFEvent *e;
 	unsigned long t;
