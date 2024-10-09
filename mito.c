@@ -2,7 +2,10 @@
 /* XXX: the order of events (when using -e) is not deterministic! */
 
 #include <assert.h>
+#include <err.h>
 #include <errno.h>
+#include <signal.h>
+#include <sndio.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,6 +29,8 @@ static void usage(void) {
 	    "    -q:  accumulative(1-3): no warning, midi errors, other errors\n"
 	    "    -o:  write resulting output to `file'\n"
 	    "    -t:  print events in real time\n"
+	    "    -p:  play events to default midi device\n"
+	    "         (implies -u, -m, and -t)\n"
 	    "input:\n"
 	    "    -m: merge all tracks of each single score\n"
 	    "    -f: fix nested / unmatched noteon/noteoff groups\n"
@@ -42,6 +47,7 @@ static void usage(void) {
 static int f_showheaders = 0;
 static int f_showtlengths = 0;
 static int f_showevents = 0;
+static int f_play = 0;
 static int f_noheader = 0;
 static int f_mergetracks = 0;
 static int f_concattracks = 0;
@@ -58,6 +64,8 @@ static int error = 0;
 static int outformat = -1;
 static int outdiv = 0;
 static int outntrk = 0;
+
+static volatile sig_atomic_t stop = 0;
 
 /* If not NULL, write track data to this buffer. */
 static MBUF *outb = NULL;
@@ -243,6 +251,76 @@ static void printevent(MFEvent *e) {
 	midiprint(MPNote, "%8ld Unknown %hu", e->time, e->msg.generic.cmd);
 }
 
+static void playevent(struct mio_hdl *hdl, MFEvent *e) {
+	unsigned char buf[4];
+	buf[0] = e->msg.generic.cmd;
+	size_t n;
+	/* No SysEx for now. */
+	switch (e->msg.generic.cmd & 0xf0) {
+	case PROGRAMCHANGE:
+		buf[1] = e->msg.programchange.program;
+		n = 2;
+		break;
+	case PITCHWHEELCHANGE:
+		buf[1] = e->msg.pitchwheelchange.value;
+		n = 1;
+		break;
+	case KEYPRESSURE:
+		buf[1] = e->msg.keypressure.note;
+		buf[2] = e->msg.keypressure.velocity;
+		n = 3;
+		break;
+	case CHANNELPRESSURE:
+		buf[1] = e->msg.channelpressure.velocity;
+		n = 2;
+		break;
+	case NOTEOFF:
+		buf[1] = e->msg.noteoff.note;
+		buf[2] = e->msg.noteoff.velocity;
+		n = 3;
+		break;
+	case NOTEON:
+		buf[1] = e->msg.noteon.note;
+		buf[2] = e->msg.noteon.velocity;
+		n = 3;
+		break;
+	case CONTROLCHANGE:
+		buf[1] = e->msg.controlchange.controller;
+		buf[2] = e->msg.controlchange.value;
+		n = 3;
+		break;
+	default:
+		n = 0;
+		break;
+	}
+	if (!n)
+		return;
+	if (mio_write(hdl, buf, n) != n)
+		err(1, NULL);
+}
+
+static void stopplay(int sig) {
+	stop = 1;
+}
+
+/* XXX: track channel states and write ordinary noteoff messages for
+ * all active notes.
+ */
+static void allnotesoff(struct mio_hdl *hdl) {
+	int i;
+	MFEvent e;
+	e.time = 0;
+
+	for (i = 0; i < 16; i++) {
+		e.msg.generic.cmd = CONTROLCHANGE;
+		e.msg.controlchange.chn = i;
+		e.msg.controlchange.controller = 123;
+		e.msg.controlchange.value = 0;
+		playevent(hdl, &e);
+	}
+	fputs("ALL NOTES OFF\n", stderr);
+}
+
 /* Sleep for the given division, tempo and delta time. */
 /* XXX use clock_gettime with CLOCK_MONOTONIC to avoid glitches. */
 static void msleep(int div, unsigned long tempo, unsigned long dt) {
@@ -262,6 +340,7 @@ static void msleep(int div, unsigned long tempo, unsigned long dt) {
 /* Print the track data of `s'. */
 static void showtracks(Score *s) {
 	MFEvent *e;
+	struct mio_hdl *hdl;
 	unsigned long tempo = 500000;	/* 120 bpm */
 	long t;
 
@@ -274,20 +353,31 @@ static void showtracks(Score *s) {
 			midiprint(MPNote, "       %7lu", ne);
 	}
 
-	if (!f_showevents)
+	if (!f_showevents && !f_play)
 		return;
 
-	for (t = 0; t < s->ntrk; t++) {
+	if (f_play && !(hdl = mio_open(MIO_PORTANY, MIO_OUT, 0)))
+		err(1, NULL);
+
+	for (t = 0; !stop && t < s->ntrk; t++) {
 		unsigned long lastt = 0;
-		while ((e = track_step(s->tracks[t], 0))) {
+		while (!stop && (e = track_step(s->tracks[t], 0))) {
 			assert (e->time >= lastt);
 			if (f_timed)
 				msleep(s->div, tempo, e->time - lastt);
 			lastt = e->time;
 			if (e->msg.generic.cmd == SETTEMPO)
 				tempo = e->msg.settempo.tempo;
-			printevent(e);
+			if (f_showevents)
+				printevent(e);
+			if (f_play)
+				playevent(hdl, e);
 		}
+	}
+
+	if (f_play) {
+		allnotesoff(hdl);
+		mio_close(hdl);
 	}
 }
 
@@ -596,7 +686,7 @@ int main(int argc, char *argv[]) {
 	char *outname = NULL;
 
 	/* Parse command line arguments. */
-	while ((opt = getopt(argc, argv, ":hleuqtnmo:012cfd:")) != -1)
+	while ((opt = getopt(argc, argv, ":hleuqtnmo:p012cfd:")) != -1)
 		switch (opt) {
 		case 'h':
 			f_showheaders = 1;
@@ -627,6 +717,9 @@ int main(int argc, char *argv[]) {
 			break;
 		case 'o':
 			outname = optarg;
+			break;
+		case 'p':
+			f_play = f_ungroup = f_mergetracks = f_timed = 1;
 			break;
 		case '0':
 			outformat = 0;
@@ -667,6 +760,11 @@ int main(int argc, char *argv[]) {
 
 		p = mbuf_pos(outb);
 	}
+
+	if (f_play && signal(SIGINT, stopplay) == SIG_ERR)
+		err(1, NULL);
+	if (f_play && signal(SIGTERM, stopplay) == SIG_ERR)
+		err(1, NULL);
 
 	if (!argc)
 		error = dofile(NULL);
