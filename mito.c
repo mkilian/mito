@@ -326,8 +326,6 @@ static void allnotesoff(struct mio_hdl *hdl) {
 static void msleep(int div, unsigned long tempo, unsigned long dt) {
 	int ret;
 	struct timespec tmo;
-	if (!dt)
-		return;
 	tmo.tv_sec = tempo * dt / div / 1000000;
 	tmo.tv_nsec = 1000 * tempo * dt / div % 1000000000;
 	while ((ret = nanosleep(&tmo, &tmo)) == -1)
@@ -360,9 +358,9 @@ static void showtracks(Score *s) {
 	for (t = 0; !stop && t < s->ntrk; t++) {
 		unsigned long lastt = 0;
 		while (!stop && (e = track_step(s->tracks[t], 0))) {
-			assert (e->time >= lastt);
-			if (f_timed)
-				msleep(s->div, tempo, e->time - lastt);
+			unsigned long dt = e->time - lastt;
+			if (f_timed && dt)
+				msleep(s->div, tempo, dt);
 			lastt = e->time;
 			if (e->msg.generic.cmd == SETTEMPO)
 				tempo = e->msg.settempo.tempo;
