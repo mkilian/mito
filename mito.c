@@ -318,7 +318,6 @@ static void allnotesoff(struct mio_hdl *hdl) {
 		e.msg.controlchange.value = 0;
 		playevent(hdl, &e);
 	}
-	fputs("ALL NOTES OFF\n", stderr);
 }
 
 /* Sleep for the given division, tempo and delta time. */
