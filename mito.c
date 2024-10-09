@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 #include <vis.h>
 
@@ -323,17 +324,15 @@ static void allnotesoff(struct mio_hdl *hdl) {
 /* Sleep for the given division, tempo and delta time. */
 /* XXX use clock_gettime with CLOCK_MONOTONIC to avoid glitches. */
 static void msleep(int div, unsigned long tempo, unsigned long dt) {
-	double usec;
-	unsigned int sec;
+	int ret;
+	struct timespec tmo;
 	if (!dt)
 		return;
-	usec = 1.0 * tempo * dt / div;
-	if (usec > 1000000) {
-		sec = usec / 1000000;
-		usec -= 1000000 * sec;
-		sleep(sec);
-	}
-	usleep(usec);
+	tmo.tv_sec = tempo * dt / div / 1000000;
+	tmo.tv_nsec = 1000 * tempo * dt / div % 1000000000;
+	while ((ret = nanosleep(&tmo, &tmo)) == -1)
+		if (errno != EINTR)
+			err(1, NULL);
 }
 
 /* Print the track data of `s'. */
