@@ -370,6 +370,8 @@ static void showtracks(Score *s) {
 				playevent(hdl, e);
 		}
 	}
+	if (stop)
+		puts("");
 
 	if (f_play) {
 		allnotesoff(hdl);
