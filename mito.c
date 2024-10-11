@@ -328,9 +328,8 @@ static void msleep(int div, unsigned long tempo, unsigned long dt) {
 	struct timespec tmo;
 	tmo.tv_sec = tempo * dt / div / 1000000;
 	tmo.tv_nsec = 1000 * tempo * dt / div % 1000000000;
-	while ((ret = nanosleep(&tmo, &tmo)) == -1)
-		if (errno != EINTR)
-			err(1, NULL);
+	if ((ret = nanosleep(&tmo, NULL)) == -1 && errno != EINTR)
+		err(1, NULL);
 }
 
 /* Output the track data of `s'. */
