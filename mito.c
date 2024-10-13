@@ -466,7 +466,7 @@ static int write_tracks(MBUF *b, Score *s, int concat) {
 		return 1;
 
 	for (t = 0; t < s->ntrk; t++) {
-		long time = 0;
+		unsigned long time = 0;
 		errno = 0;
 
 		if (t == 0 || !concat) {
@@ -481,8 +481,7 @@ static int write_tracks(MBUF *b, Score *s, int concat) {
 
 		track_rewind(s->tracks[t]);
 		while ((e = track_step(s->tracks[t], 0))) {
-			e->time -= time;
-			time += e->time;
+			time += e->time -= time;
 
 			/*
 			 * If we are in concat mode, we only write the very last EOT
