@@ -25,7 +25,8 @@ int score_add(Score *s);
 
 /*
  * Read the next score from a buffer (there may be multiple scores
- * within one buffer).
+ * within one buffer). Delta times are converte to absolute times for
+ * each track.
  * If the score header is missing, default values are assumed.
  */
 Score *score_read(MBUF *b);

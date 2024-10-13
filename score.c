@@ -43,11 +43,11 @@ int score_add(Score *s) {
 
 /*
  * Read an event list from the next `size' bytes of the buffer into the
- * track `t'.
+ * track `t', converting original delta times to absolute times.
  */
 static int read_events(MBUF *b, unsigned long size, Track *t) {
 	unsigned long p = mbuf_pos(b);
-	long time = 0;
+	unsigned long time = 0;
 	char running = 0;
 	MFEvent e;
 
@@ -56,8 +56,7 @@ static int read_events(MBUF *b, unsigned long size, Track *t) {
 
 	while (size > 0 && mbuf_request(b, 1) && read_event(b, &e, &running) &&
 	    e.msg.endoftrack.type != ENDOFTRACK) {
-		time += e.time;
-		e.time = time;
+		time = e.time += time;
 
 		size += p;
 		p = mbuf_pos(b);
@@ -187,7 +186,8 @@ static long read_track(MBUF *b) {
 
 /*
  * Read the next score from a buffer (there may be multiple scores
- * within one buffer).
+ * within one buffer). Delta times are converte to absolute times for
+ * each track.
  * If the score header is missing, default values are assumed.
  */
 Score *score_read(MBUF *b) {
