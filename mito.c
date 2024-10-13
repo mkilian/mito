@@ -259,41 +259,34 @@ static void printevent(MFEvent *e) {
 
 static void playevent(struct mio_hdl *hdl, MFEvent *e) {
 	unsigned char buf[4];
-	buf[0] = e->msg.generic.cmd;
-	size_t n;
+	size_t n = 0;
+	buf[n++] = e->msg.generic.cmd;
 	/* No SysEx for now. */
 	switch (e->msg.generic.cmd & 0xf0) {
 	case PROGRAMCHANGE:
-		buf[1] = e->msg.programchange.program;
-		n = 2;
+		buf[n++] = e->msg.programchange.program;
 		break;
 	case PITCHWHEELCHANGE:
-		buf[1] = e->msg.pitchwheelchange.value;
-		n = 1;
+		buf[n++] = e->msg.pitchwheelchange.value;
 		break;
 	case KEYPRESSURE:
-		buf[1] = e->msg.keypressure.note;
-		buf[2] = e->msg.keypressure.velocity;
-		n = 3;
+		buf[n++] = e->msg.keypressure.note;
+		buf[n++] = e->msg.keypressure.velocity;
 		break;
 	case CHANNELPRESSURE:
-		buf[1] = e->msg.channelpressure.velocity;
-		n = 2;
+		buf[n++] = e->msg.channelpressure.velocity;
 		break;
 	case NOTEOFF:
-		buf[1] = e->msg.noteoff.note;
-		buf[2] = e->msg.noteoff.velocity;
-		n = 3;
+		buf[n++] = e->msg.noteoff.note;
+		buf[n++] = e->msg.noteoff.velocity;
 		break;
 	case NOTEON:
-		buf[1] = e->msg.noteon.note;
-		buf[2] = e->msg.noteon.velocity;
-		n = 3;
+		buf[n++] = e->msg.noteon.note;
+		buf[n++] = e->msg.noteon.velocity;
 		break;
 	case CONTROLCHANGE:
-		buf[1] = e->msg.controlchange.controller;
-		buf[2] = e->msg.controlchange.value;
-		n = 3;
+		buf[n++] = e->msg.controlchange.controller;
+		buf[n++] = e->msg.controlchange.value;
 		break;
 	default:
 		n = 0;
