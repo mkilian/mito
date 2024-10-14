@@ -11,7 +11,8 @@
 typedef struct {
 	int fmt;
 	int ntrk;
-	int div;
+	int div;	/* Ticks per quarter note (no SMPTE support
+			 * for now) */
 	Track **tracks;
 } Score;
 
