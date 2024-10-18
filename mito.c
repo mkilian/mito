@@ -322,11 +322,10 @@ static void allnotesoff(struct mio_hdl *hdl) {
 /* Sleep for the given division, tempo and delta time. */
 /* XXX use clock_gettime with CLOCK_MONOTONIC to avoid glitches. */
 static void msleep(int div, unsigned long tempo, unsigned long dt) {
-	int ret;
 	struct timespec tmo;
 	tmo.tv_sec = tempo * dt / div / 1000000;
 	tmo.tv_nsec = 1000 * tempo * dt / div % 1000000000;
-	if ((ret = nanosleep(&tmo, NULL)) == -1 && errno != EINTR)
+	if ((nanosleep(&tmo, NULL)) == -1 && errno != EINTR)
 		err(1, NULL);
 }
 
