@@ -305,7 +305,7 @@ static void stopplay(int sig) {
 /* XXX: track channel states and write ordinary noteoff messages for
  * all active notes.
  */
-static void allnotesoff(struct mio_hdl *hdl) {
+static void shutup(struct mio_hdl *hdl) {
 	int i;
 	MFEvent e;
 	e.time = 0;
@@ -313,8 +313,12 @@ static void allnotesoff(struct mio_hdl *hdl) {
 	for (i = 0; i < 16; i++) {
 		e.msg.generic.cmd = CONTROLCHANGE;
 		e.msg.controlchange.chn = i;
-		e.msg.controlchange.controller = 123;
+		/* Reset all controllers. */
+		e.msg.controlchange.controller = 121;
 		e.msg.controlchange.value = 0;
+		playevent(hdl, &e);
+		/* All notes off. */
+		e.msg.controlchange.controller = 123;
 		playevent(hdl, &e);
 	}
 }
@@ -370,7 +374,7 @@ static void showtracks(Score *s) {
 		puts("");
 
 	if (f_play) {
-		allnotesoff(hdl);
+		shutup(hdl);
 		mio_close(hdl);
 	}
 }
