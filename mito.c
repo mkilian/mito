@@ -324,11 +324,26 @@ static void shutup(struct mio_hdl *hdl) {
 }
 
 /* Sleep for the given division, tempo and delta time. */
-/* XXX use clock_gettime with CLOCK_MONOTONIC to avoid glitches. */
 static void msleep(int div, unsigned long tempo, unsigned long dt) {
-	struct timespec tmo;
+	struct timespec tmo, now;
+	static struct timespec then = {0, 0};
 	tmo.tv_sec = tempo * dt / div / 1000000;
 	tmo.tv_nsec = 1000 * tempo * dt / div % 1000000000;
+	/* Try to compensate any delay occurred between this and the
+	 * last msleep().
+	 */
+	if (then.tv_sec == 0 && then.tv_nsec == 0) {
+		if (clock_gettime(CLOCK_MONOTONIC, &then))
+			err(1, NULL);
+	} else {
+		if (clock_gettime(CLOCK_MONOTONIC, &now))
+			err(1, NULL);
+		timespecadd(&tmo, &then, &tmo);
+		timespecsub(&tmo, &now, &tmo);
+		timespecadd(&now, &tmo, &then);
+	}
+	if (tmo.tv_sec < 0 || tmo.tv_nsec < 0)
+		return;
 	if ((nanosleep(&tmo, NULL)) == -1 && errno != EINTR)
 		err(1, NULL);
 }
