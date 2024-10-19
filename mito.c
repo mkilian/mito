@@ -329,6 +329,9 @@ static void msleep(int div, unsigned long tempo, unsigned long dt) {
 	static struct timespec then = {0, 0};
 	tmo.tv_sec = tempo * dt / div / 1000000;
 	tmo.tv_nsec = 1000 * tempo * dt / div % 1000000000;
+#ifdef DEBUG
+	printf("tmo:\t%32lld.%09ld\n", tmo.tv_sec, tmo.tv_nsec);
+#endif
 	/* Try to compensate any delay occurred between this and the
 	 * last msleep().
 	 */
@@ -342,6 +345,9 @@ static void msleep(int div, unsigned long tempo, unsigned long dt) {
 		timespecsub(&tmo, &now, &tmo);
 		timespecadd(&now, &tmo, &then);
 	}
+#ifdef DEBUG
+	printf("\t%32lld.%09ld\n", tmo.tv_sec, tmo.tv_nsec);
+#endif
 	if (tmo.tv_sec < 0 || tmo.tv_nsec < 0)
 		return;
 	if ((nanosleep(&tmo, NULL)) == -1 && errno != EINTR)
