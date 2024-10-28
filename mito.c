@@ -381,7 +381,12 @@ static void showtracks(Score *s) {
 		while (!stop && (e = track_step(s->tracks[t], 0))) {
 			unsigned long dt = e->time - lastt;
 			lastt = e->time;
-			if (f_timed && dt)
+			/* XXX: ensure that ENDOFTRACK is really the
+			 * last event of a track at load time and then
+			 * just terminate this loop on ENDOFTRACK.
+			 */
+			if (f_timed && dt &&
+			    e->msg.generic.cmd != ENDOFTRACK)
 				msleep(s->div, tempo, dt);
 			if (e->msg.generic.cmd == SETTEMPO)
 				tempo = e->msg.settempo.tempo;
