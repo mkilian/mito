@@ -335,12 +335,11 @@ static void msleep(int div, unsigned long tempo, unsigned long dt) {
 	/* Try to compensate any delay occurred between this and the
 	 * last msleep().
 	 */
-	if (then.tv_sec == 0 && then.tv_nsec == 0) {
-		if (clock_gettime(CLOCK_MONOTONIC, &then))
-			err(1, NULL);
-	} else {
-		if (clock_gettime(CLOCK_MONOTONIC, &now))
-			err(1, NULL);
+	if (clock_gettime(CLOCK_MONOTONIC, &now))
+		err(1, NULL);
+	if (then.tv_sec == 0 || then.tv_nsec == 0)
+		then = now;
+	else {
 		timespecadd(&tmo, &then, &tmo);
 		timespecsub(&tmo, &now, &tmo);
 		timespecadd(&now, &tmo, &then);
