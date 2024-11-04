@@ -339,11 +339,9 @@ static void msleep(int div, unsigned long tempo, unsigned long dt) {
 		err(1, NULL);
 	if (then.tv_sec == 0 || then.tv_nsec == 0)
 		then = now;
-	else {
-		timespecadd(&tmo, &then, &tmo);
-		timespecsub(&tmo, &now, &tmo);
-		timespecadd(&now, &tmo, &then);
-	}
+	timespecadd(&tmo, &then, &tmo);
+	timespecsub(&tmo, &now, &tmo);
+	timespecadd(&now, &tmo, &then);
 #ifdef DEBUG
 	printf("\t%32lld.%09ld\n", tmo.tv_sec, tmo.tv_nsec);
 #endif
