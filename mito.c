@@ -163,7 +163,8 @@ static void printevent(MFEvent *e) {
 	case PITCHWHEELCHANGE:
 		midiprint(MPNote, "%8ld PitchWheelChange %hd %hd", t,
 		    e->msg.pitchwheelchange.chn,
-		    e->msg.pitchwheelchange.value);
+		    e->msg.pitchwheelchange.msb << 7 |
+		    e->msg.pitchwheelchange.lsb);
 		return;
 	}
 
@@ -267,7 +268,9 @@ static void playevent(struct mio_hdl *hdl, MFEvent *e) {
 		buf[n++] = e->msg.programchange.program;
 		break;
 	case PITCHWHEELCHANGE:
-		buf[n++] = e->msg.pitchwheelchange.value;
+		/* Beware of the byte order! (LSB first) */
+		buf[n++] = e->msg.pitchwheelchange.lsb;
+		buf[n++] = e->msg.pitchwheelchange.msb;
 		break;
 	case KEYPRESSURE:
 		buf[n++] = e->msg.keypressure.note;

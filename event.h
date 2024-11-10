@@ -106,8 +106,8 @@ typedef struct {
 
 typedef struct {
 	unsigned char chn:4, cmd:4;
-	short value;	/* Within the midi file, this is
-			 * a 2x7bit quantity. */
+	unsigned char lsb;
+	unsigned char msb;
 } MFPitchWheelChange;
 
 /*

@@ -227,8 +227,9 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs) {
 				mbuf_set(b, i);
 				return 0;
 			}
-			msg->pitchwheelchange.value = b1 << 7 | b2;
-			msg->pitchwheelchange.value -= 0x2000;
+			/* Yes, LSB comes first! */
+			msg->pitchwheelchange.lsb = b1;
+			msg->pitchwheelchange.msb = b2;
 			*rs = msg->generic.cmd;
 			return 1;
 			break;
@@ -333,9 +334,8 @@ int write_message(MBUF *b, MFMessage *msg, unsigned char *rs) {
 		case CHANNELPRESSURE:
 			return mbuf_put(b, msg->programchange.program) != EOF;
 		case PITCHWHEELCHANGE:
-			value = msg->pitchwheelchange.value + 0x2000;
-			return mbuf_put(b, (value >> 7) & 0x7f) != EOF &&
-				mbuf_put(b, value & 0x7f) != EOF ;
+			return mbuf_put(b, msg->pitchwheelchange.lsb) != EOF &&
+				mbuf_put(b, msg->pitchwheelchange.msb) != EOF;
 		}
 	} else {
 		if (rs)
