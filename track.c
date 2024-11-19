@@ -26,32 +26,20 @@ Track *track_new(void) {
 
 /*
  * Enlarge a track by one entry.
- * Since realloc() may be expensive, we use exponentially growing
- * blocksizes starting at 1K, i.e. 1024, 2048, 4096, ...
  * The nevents field is updated and the address of the new (last) event
  * is returned. If an error occurs (out of memory), a NULL pointer is
  * returned.
  */
 static MFEvent *enlarge(Track *t) {
-	unsigned long n;
 	MFEvent *new;
 
-	n = t->nevents ? t->nevents : 512;
+	if (!(new = realloc(t->events, (t->nevents + 1) * sizeof(*new))))
+		return NULL;
 
-	/* This tricky expression tests wether `n' is a power of two. */
-	if ((n ^ (n-1)) == 2 * n - 1) {
-		n *= 2;
-		if (!(new = realloc(t->events, n * sizeof(*new))))
-			return NULL;
-
-		t->events = new;
-	}
-
+	t->events = new;
 	t->nevents++;
-
 	return &(t->events[t->nevents-1]);
 }
-
 
 /*
  * Shrink the track by `n' events. This means that the last `n' events
