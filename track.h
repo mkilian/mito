@@ -5,15 +5,6 @@
 
 #include "event.h"
 
-/*
- * Memory statistics:
- * Greatest used track size and greatest allocated track size (in
- * elements, i.e. event structures), the difference giving the wasted
- * space in the worst track.
- */
-extern unsigned long maxused;
-extern unsigned long maxallocated;
-
 /* The track structure itself. */
 typedef struct _Track {
 	MFEvent       *events;		/* List of events. */

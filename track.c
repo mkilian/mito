@@ -8,15 +8,6 @@
 #include "track.h"
 
 /*
- * Memory statistics:
- * Greatest used track size and greatest allocated track size (in
- * elements, i.e. event structures), the difference giving the wasted
- * space in the worst track.
- */
-unsigned long maxused = 0;
-unsigned long maxallocated = 0;
-
-/*
  * Build a new track.
  * The function returns a pointer to the new (empty) track or NULL on
  * errors.
@@ -53,15 +44,10 @@ static MFEvent *enlarge(Track *t) {
 		if (!(new = realloc(t->events, n * sizeof(*new))))
 			return NULL;
 
-		if (maxallocated < n)
-			maxallocated = n;
-
 		t->events = new;
 	}
 
 	t->nevents++;
-	if (maxused < t->nevents)
-		maxused = t->nevents;
 
 	return &(t->events[t->nevents-1]);
 }
