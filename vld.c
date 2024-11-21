@@ -133,5 +133,5 @@ long write_vld(MBUF *b, const void *vld) {
 		if (mbuf_put(b, *data++) == EOF)
 			return 0;
 
-  return result;
+	return result;
 }
