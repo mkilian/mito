@@ -18,9 +18,9 @@
  * else it returns 1.
  */
 static int convert_meta(MFMessage *msg) {
-	void *vld = msg->meta.data;
-	long length = vld_size(vld);
-	const unsigned char *data = vld_data(vld);
+	struct vld *vld = msg->meta.data;
+	long length = vld->length;
+	const unsigned char *data = vld->data;
 	int result = 0;
 
 	switch (msg->meta.type) {

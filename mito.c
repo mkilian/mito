@@ -104,13 +104,13 @@ static void print(MPLevel level, const char *fmt, va_list args) {
 }
 
 /* Convert a vld into a printable string. */
-static char *strdat(void *vld) {
+static char *strdat(struct vld *vld) {
 	static char buf[1024 * 4 + 1];
-	long length = vld_size(vld);
+	long length = vld->length;
 	int trunc = length > 1024;
 	if (trunc)
 		length = 1024 - 3;
-	strvisx(buf, vld_data(vld), length, VIS_CSTYLE);
+	strvisx(buf, vld->data, length, VIS_CSTYLE);
 	if (trunc)
 		strlcat (buf, "...", sizeof(buf));
 	return buf;

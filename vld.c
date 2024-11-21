@@ -75,11 +75,11 @@ int write_vlq(MBUF *b, long vlq) {
  * Read variable length data, i.e. a vlq and following data bytes.
  * Returns the data pointer, or NULL on error.
  */
-void *read_vld(MBUF *b) {
+struct vld *read_vld(MBUF *b) {
 	unsigned long p = mbuf_pos(b);
 	long length;
-	void *data;
-	char *ptr;
+	struct vld *vld;
+	unsigned char *ptr;
 
 	if ((length = read_vlq(b)) < 0)
 		return NULL;
@@ -90,39 +90,27 @@ void *read_vld(MBUF *b) {
 		return NULL;
 	}
 
-	if (!(data = malloc(sizeof(long) + length))) {
+	if (!(vld = malloc(sizeof(*vld) + length))) {
 		midiprint(MPFatal, "%s", strerror(errno));
 		mbuf_set(b, p);
 		return NULL;
 	}
 
-	*(long*) data = length;
-	ptr = ((char*)data) + sizeof(long);
+	vld->length = length;
+	ptr = vld->data;
 	while (length--)
 		*ptr++ = mbuf_get(b);
 
-	return data;
-}
-
-
-/* Get the size of vld. */
-long vld_size(const void *vld) {
-	const long *size = vld;
-	return *size;
-}
-
-/* Get the data of vld. */
-const void *vld_data(const void *vld) {
-	return vld + sizeof(long);
+	return vld;
 }
 
 /*
  * Write variable length data, i.e. a vlq and following data bytes.
  * The number of bytes written, or 0 on error.
  */
-long write_vld(MBUF *b, const void *vld) {
-	long length = vld_size(vld);
-	const char *data = vld_data(vld);
+long write_vld(MBUF *b, const struct vld *vld) {
+	long length = vld->length;
+	const unsigned char *data = vld->data;
 	long result;
 
 	if (!(result = write_vlq(b, length)))

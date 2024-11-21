@@ -116,18 +116,18 @@ typedef struct {
  */
 typedef struct {
 	unsigned char cmd;
-	void *data;
+	struct vld *data;
 } MFSystemExclusive;
 
 typedef struct {
 	unsigned char cmd;
-	void *data;
+	struct vld *data;
 } MFSystemExclusiveCont;
 
 typedef struct {
 	unsigned char cmd;
 	unsigned char type;
-	void *data;
+	struct vld *data;
 } MFMeta;
 
 /*
@@ -146,37 +146,37 @@ typedef struct {
 
 typedef struct {
 	unsigned char type;
-	void *text;
+	struct vld *text;
 } MFText;
 
 typedef struct {
 	unsigned char type;
-	void *text;
+	struct vld *text;
 } MFCopyrightNotice;
 
 typedef struct {
 	unsigned char type;
-	void *text;
+	struct vld *text;
 } MFTrackName;
 
 typedef struct {
 	unsigned char type;
-	void *text;
+	struct vld *text;
 } MFInstrumentName;
 
 typedef struct {
 	unsigned char type;
-	void *text;
+	struct vld *text;
 } MFLyric;
 
 typedef struct {
 	unsigned char type;
-	void *text;
+	struct vld *text;
 } MFMarker;
 
 typedef struct {
 	unsigned char type;
-	void *text;
+	struct vld *text;
 } MFCuePoint;
 
 typedef struct {
@@ -218,7 +218,7 @@ typedef struct {
 
 typedef struct {
 	unsigned char type;
-	void *data;
+	struct vld *data;
 } MFSequencerSpecific;
 
 /*
@@ -226,7 +226,7 @@ typedef struct {
  */
 typedef struct {
 	unsigned char type;
-	void *subtrack;
+	struct vld *subtrack;
 } MFLink;
 
 typedef struct {
@@ -236,7 +236,7 @@ typedef struct {
 typedef struct {
 	unsigned char type;
 	unsigned char code;
-	void *text;
+	struct vld *text;
 } MFWarning;
 
 /*

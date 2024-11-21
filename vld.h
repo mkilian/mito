@@ -5,6 +5,11 @@
 
 #include "buffer.h"
 
+struct vld {
+	long length;
+	unsigned char data[];
+};
+
 /*
  * Read a variable length quantity (e.g. delta time) from the buffer.
  * If an error occurs (too large value), -1 is returned and the buffer
@@ -25,18 +30,12 @@ int write_vlq(MBUF *b, long vlq);
  * Read variable length data, i.e. a vlq and following data bytes.
  * Returns the data pointer, or NULL on error.
  */
-void *read_vld(MBUF *b);
+struct vld *read_vld(MBUF *b);
 
 /*
  * Write variable length data, i.e. a vlq and following data bytes.
  * The number of bytes written, or 0 on error.
  */
-long write_vld(MBUF *b, const void *vld);
-
-/* Get the size of vld. */
-long vld_size(const void *vld);
-
-/* Get the data of vld. */
-const void *vld_data(const void *vld);
+long write_vld(MBUF *b, const struct vld *vld);
 
 #endif /* __VLD_H__ */
