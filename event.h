@@ -68,12 +68,12 @@ typedef struct {
 } MFGeneric;
 
 typedef struct {
-	unsigned char chn:4, cmd:4;
+	unsigned char cmd:4, chn:4;
 	unsigned char note, velocity;
 } MFNoteOff;
 
 typedef struct {
-	unsigned char chn:4, cmd:4;
+	unsigned char cmd:4, chn:4;
 	unsigned char note, velocity;
 
 	/* These are for a `Note' message that combines NoteOn and NoteOff.
@@ -85,27 +85,27 @@ typedef struct {
 } MFNoteOn;
 
 typedef struct {
-	unsigned char chn:4, cmd:4;
+	unsigned char cmd:4, chn:4;
 	unsigned char note, velocity;
 } MFKeyPressure;
 
 typedef struct {
-	unsigned char chn:4, cmd:4;
+	unsigned char cmd:4, chn:4;
 	unsigned char controller, value;
 } MFControlChange;
 
 typedef struct {
-	unsigned char chn:4, cmd:4;
+	unsigned char cmd:4, chn:4;
 	unsigned char program;
 } MFProgramChange;
 
 typedef struct {
-	unsigned char chn:4, cmd:4;
+	unsigned char cmd:4, chn:4;
 	unsigned char velocity;
 } MFChannelPressure;
 
 typedef struct {
-	unsigned char chn:4, cmd:4;
+	unsigned char cmd:4, chn:4;
 	unsigned char lsb;
 	unsigned char msb;
 } MFPitchWheelChange;
