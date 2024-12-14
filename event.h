@@ -162,9 +162,6 @@ typedef struct {
 } MFPortPrefix;
 
 typedef struct {
-} MFEndOfTrack;
-
-typedef struct {
 	unsigned long tempo;	/* 24 bit quantity; microseconds per
 				 * midi quarternote */
 } MFSetTempo;
@@ -186,21 +183,6 @@ typedef struct {
 typedef struct {
 	struct vld *data;
 } MFSequencerSpecific;
-
-/*
- * Internal messages. These should never be seen by the application.
- */
-typedef struct {
-	struct vld *subtrack;
-} MFLink;
-
-typedef struct {
-} MFEmpty;
-
-typedef struct {
-	unsigned char code;
-	struct vld *text;
-} MFWarning;
 
 /*
  * Now comes the big message union.
@@ -228,15 +210,11 @@ typedef struct {
 		MFCuePoint		cuepoint;
 		MFChannelPrefix		channelprefix;
 		MFPortPrefix		portprefix;
-		MFEndOfTrack		endoftrack;
 		MFSetTempo		settempo;
 		MFSMPTEOffset		smpteoffset;
 		MFTimeSignature		timesignature;
 		MFKeySignature		keysignature;
 		MFSequencerSpecific	sequencerspecific;
-		MFLink			link;
-		MFEmpty			empty;
-		MFWarning		warning;
 	};
 } MFMessage;
 
