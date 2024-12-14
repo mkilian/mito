@@ -52,10 +52,10 @@ static int read_events(MBUF *b, unsigned long size, Track *t) {
 	MFEvent e;
 
 	e.time = 0;
-	e.msg.empty.type = EMPTY;
+	e.msg.cmd = EMPTY;
 
 	while (size > 0 && mbuf_request(b, 1) && read_event(b, &e, &running) &&
-	    e.msg.endoftrack.type != ENDOFTRACK) {
+	    e.msg.cmd != ENDOFTRACK) {
 		time = e.time += time;
 
 		size += p;
@@ -66,10 +66,10 @@ static int read_events(MBUF *b, unsigned long size, Track *t) {
 			return 0;
 	}
 
-	if (e.msg.endoftrack.type != ENDOFTRACK) {
+	if (e.msg.cmd != ENDOFTRACK) {
 		midiprint(MPWarn, "inserting missing `End Of Track'");
 		e.time = time;
-		e.msg.endoftrack.type = ENDOFTRACK;
+		e.msg.cmd = ENDOFTRACK;
 	} else {
 		e.time += time;
 		size -= mbuf_pos(b) - p;

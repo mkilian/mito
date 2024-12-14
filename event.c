@@ -23,7 +23,7 @@ static int convert_meta(MFMessage *msg) {
 	const unsigned char *data = vld->data;
 	int result = 0;
 
-	switch (msg->meta.type) {
+	switch (msg->cmd) {
 	case SEQUENCENUMBER:
 		if (length < 2) {
 			midiprint(MPError, "sequencenumber: too short data");
@@ -31,7 +31,6 @@ static int convert_meta(MFMessage *msg) {
 		}
 		if (length > 2)
 			midiprint(MPWarn, "sequencenumber: long data");
-		msg->sequencenumber.type = msg->meta.type;
 		msg->sequencenumber.sequencenumber = data[0] << 8 | data[1];
 		result = 1;
 		break;
@@ -42,7 +41,6 @@ static int convert_meta(MFMessage *msg) {
 	case LYRIC:
 	case MARKER:
 	case CUEPOINT:
-		msg->text.type = msg->meta.type;
 		msg->text.text = vld;
 		vld = NULL;
 		result = 1;
@@ -52,21 +50,18 @@ static int convert_meta(MFMessage *msg) {
 			midiprint(MPWarn, "channelprefix: long data");
 		if (data[0] > 15)
 			midiprint(MPWarn, "portprefix: port too large");
-		msg->channelprefix.type = msg->meta.type;
 		msg->channelprefix.channel = data[0];
 		result = 1;
 		break;
 	case PORTPREFIX:
 		if (length > 1)
 			midiprint(MPWarn, "portprefix: long data");
-		msg->portprefix.type = msg->meta.type;
 		msg->portprefix.port = data[0];
 		result = 1;
 		break;
 	case ENDOFTRACK:
 		if (length > 0)
 			midiprint(MPWarn, "end of track: long data");
-		msg->endoftrack.type = msg->meta.type;
 		result = 1;
 		break;
 	case SETTEMPO:
@@ -76,7 +71,6 @@ static int convert_meta(MFMessage *msg) {
 		}
 		if (length > 3)
 			midiprint(MPWarn, "set tempo: long data");
-		msg->settempo.type = msg->meta.type;
 		msg->settempo.tempo = data[0] << 16 | data[1] << 8 | data[2];
 		result = 1;
 		break;
@@ -87,7 +81,6 @@ static int convert_meta(MFMessage *msg) {
 		}
 		if (length > 5)
 			midiprint(MPWarn, "SMPTE offset: long data");
-		msg->smpteoffset.type = msg->meta.type;
 		msg->smpteoffset.hours = data[0];
 		msg->smpteoffset.minutes = data[1];
 		msg->smpteoffset.seconds = data[2];
@@ -102,7 +95,6 @@ static int convert_meta(MFMessage *msg) {
 		}
 		if (length > 4)
 			midiprint(MPWarn, "time signature: long data");
-		msg->timesignature.type = msg->meta.type;
 		msg->timesignature.nominator = data[0];
 		msg->timesignature.denominator = data[1];
 		msg->timesignature.clocksperclick = data[2];
@@ -116,18 +108,16 @@ static int convert_meta(MFMessage *msg) {
 		}
 		if (length > 2)
 			midiprint(MPWarn, "key signature: long data");
-		msg->keysignature.type = msg->meta.type;
 		msg->keysignature.sharpsflats = data[0];
 		msg->keysignature.minor = data[1];
 		result = 1;
 		break;
 	case SEQUENCERSPECIFIC:
-		msg->sequencerspecific.type = msg->meta.type;
 		msg->sequencerspecific.data = vld; vld = NULL;
 		result = 1;
 		break;
 	default:
-		midiprint(MPWarn, "unknown meta type %hd", msg->meta.type);
+		midiprint(MPWarn, "unknown meta type %hd", msg->cmd);
 		vld = NULL;
 		result = 1;
 		break;
@@ -156,19 +146,16 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs) {
 		midiprint(MPError, "reading message: end of input");
 		return 0;
 	}
-	/* XXX: This relies on the order of bitfields when mapping a
-	 * generic cmd to channel voice or mode commands and channels.
-	 */
-	if (!((msg->generic.cmd = mbuf_get(b)) & 0x80)) {
+	if (!((msg->cmd = mbuf_get(b)) & 0x80)) {
 		mbuf_set(b, i);
-		msg->generic.cmd = *rs;
+		msg->cmd = *rs;
 	}
-	if (!(msg->generic.cmd & 0x80)) {
-		midiprint(MPError, "reading message: got data byte %hd", msg->generic.cmd);
+	if (!(msg->cmd & 0x80)) {
+		midiprint(MPError, "reading message: got data byte %hd", msg->cmd);
 		mbuf_set(b, i);
 		return 0;
 	}
-	switch (msg->generic.cmd & 0xf0) {
+	switch (msg->cmd & 0xf0) {
 		/* Two-byte messages. */
 		case NOTEON:
 			msg->noteon.duration = 0;
@@ -193,7 +180,7 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs) {
 			}
 			msg->noteoff.note = b1;
 			msg->noteoff.velocity = b2;
-			*rs = msg->generic.cmd;
+			*rs = msg->cmd;
 			return 1;
 			break;
 		/* One-byte messages. */
@@ -210,7 +197,7 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs) {
 				return 0;
 			}
 			msg->programchange.program = b1;
-			*rs = msg->generic.cmd;
+			*rs = msg->cmd;
 			return 1;
 			break;
 		/* This is special since it contains a 2x7bit quantity: */
@@ -233,13 +220,13 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs) {
 			/* Yes, LSB comes first! */
 			msg->pitchwheelchange.lsb = b1;
 			msg->pitchwheelchange.msb = b2;
-			*rs = msg->generic.cmd;
+			*rs = msg->cmd;
 			return 1;
 			break;
 	}
 
 	/* Non-channel voice messages. */
-	switch (msg->generic.cmd) {
+	switch (msg->cmd) {
 	/* Sysex messages. */
 	case SYSTEMEXCLUSIVE:
 	case SYSTEMEXCLUSIVECONT:
@@ -259,7 +246,7 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs) {
 			mbuf_set(b, i);
 			return 0;
 		}
-		msg->meta.type = mbuf_get(b);
+		msg->cmd = mbuf_get(b);
 		/* Get the data. */
 		if (!(msg->meta.data = read_vld(b))) {
 			mbuf_set(b, i);
@@ -274,7 +261,7 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs) {
 	}
 
 	/* What's that? */
-	midiprint(MPError, "unknown message type %hu", msg->generic.cmd);
+	midiprint(MPError, "unknown message type %hu", msg->cmd);
 	mbuf_set(b, i);
 	return 0;
 }
@@ -290,7 +277,7 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs) {
  * messages as in read_message.
  */
 int write_message(MBUF *b, MFMessage *msg, unsigned char *rs) {
-	unsigned char cmd = msg->generic.cmd;
+	unsigned char cmd = msg->cmd;
 	long value;
 
 	if (cmd >= 0xf0) {
@@ -306,7 +293,7 @@ int write_message(MBUF *b, MFMessage *msg, unsigned char *rs) {
 		case SYSTEMEXCLUSIVECONT:
 			return write_vld(b, msg->systemexclusive.data);
 		case META:
-			return mbuf_put(b, msg->meta.type) != EOF &&
+			return mbuf_put(b, msg->cmd) != EOF &&
 				write_vld(b, msg->meta.data);
 		}
 	} else if (cmd >= 0x80) {
@@ -411,7 +398,7 @@ int write_message(MBUF *b, MFMessage *msg, unsigned char *rs) {
  * variable sized message.
  */
 void clear_message(MFMessage *msg) {
-	switch (msg->generic.cmd) {
+	switch (msg->cmd) {
 	case SYSTEMEXCLUSIVE:
 		free(msg->systemexclusive.data);
 		break;
@@ -446,7 +433,7 @@ void clear_message(MFMessage *msg) {
 		free(msg->sequencerspecific.data);
 		break;
 	}
-  msg->empty.type = EMPTY;
+  msg->cmd = EMPTY;
 }
 
 /*

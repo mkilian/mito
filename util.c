@@ -33,7 +33,7 @@ int pairNotes(Track *t) {
 
 	track_rewind(t);
 	while ((e = track_step(t, 0)) != NULL)
-		switch (e->msg.generic.cmd & 0xf0) {
+		switch (e->msg.cmd & 0xf0) {
 		case NOTEON:
 			if (e->msg.noteon.velocity != 0) {
 				if (e->msg.noteon.duration == 0) {
@@ -53,8 +53,8 @@ int pairNotes(Track *t) {
 			else {
 				nn = notes;
 				while (nn && (nn->e == NULL ||
-				    nn->e->msg.noteon.chn != e->msg.noteon.chn ||
-				    nn->e->msg.noteon.note != e->msg.noteon.note))
+				    CHN(nn->e->msg) != CHN(e->msg) ||
+				    CHN(nn->e->msg) != CHN(e->msg)))
 					nn = nn->n;
 
 				if (!nn)
@@ -98,12 +98,11 @@ int unpairNotes(Track *t) {
 	track_rewind(t);
 
 	while ((e = track_step(t, 0)) != NULL)
-		if ((e->msg.generic.cmd & 0xf0) == NOTEON &&
+		if ((e->msg.cmd & 0xf0) == NOTEON &&
 			e->msg.noteon.duration != 0) {
 		MFEvent _o, *o = &_o;
 		o->time = e->time + e->msg.noteon.duration;
-		o->msg.generic.cmd = NOTEOFF;
-		o->msg.noteoff.chn = e->msg.noteon.chn;
+		o->msg.cmd = NOTEOFF | CHN(e->msg);
 		o->msg.noteoff.note = e->msg.noteon.note;
 		o->msg.noteoff.velocity = e->msg.noteon.release;
 		e->msg.noteon.duration = 0;
@@ -141,14 +140,14 @@ void compressNoteOff(Track *t, int force) {
 		force = 1;
 		track_rewind(t);
 		while ((e = track_step(t, 0)) != NULL &&
-		    (e->msg.generic.cmd & 0xf0) != NOTEOFF)
+		    (e->msg.cmd & 0xf0) != NOTEOFF)
 			; /* SKIP */
 
 		if (e != NULL) {
 			int vel = e->msg.noteoff.velocity;
 
 			while (force && (e = track_step(t, 0)) != NULL)
-				if ((e->msg.generic.cmd & 0xf0) == NOTEOFF &&
+				if ((e->msg.cmd & 0xf0) == NOTEOFF &&
 				    e->msg.noteoff.velocity != vel)
 					force = 0;
 		}
@@ -157,9 +156,9 @@ void compressNoteOff(Track *t, int force) {
 	if (force) {
 		track_rewind(t);
 	while ((e = track_step(t, 0)) != NULL)
-		if ((e->msg.generic.cmd & 0xf0) == NOTEOFF) {
-			e->msg.generic.cmd &= 0x0f;
-			e->msg.generic.cmd |= NOTEON;
+		if ((e->msg.cmd & 0xf0) == NOTEOFF) {
+			e->msg.cmd &= 0x0f;
+			e->msg.cmd |= NOTEON;
 			e->msg.noteon.velocity = 0;
 			e->msg.noteon.duration = 0;
 		}

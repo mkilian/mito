@@ -122,53 +122,53 @@ static void printevent(MFEvent *e) {
 	dt = e->time < lastt ? 0 : e->time - lastt;
 	lastt = e->time;
 	t = dt;
-	switch (e->msg.generic.cmd & 0xf0) {
+	switch (e->msg.cmd & 0xf0) {
 	case NOTEOFF:
 		midiprint(MPNote, "%8ld NoteOff %hd %hd %hd", t,
-		    e->msg.noteoff.chn, e->msg.noteoff.note,
+		    CHN(e->msg), e->msg.noteoff.note,
 		    e->msg.noteoff.velocity);
 		return;
 	case NOTEON:
 		if (e->msg.noteon.duration)
 			midiprint(MPNote, "%8ld Note %hd %hd %hd %ld %hd", t,
-			    e->msg.noteon.chn, e->msg.noteon.note,
+			    CHN(e->msg), e->msg.noteon.note,
 			    e->msg.noteon.velocity,
 			    e->msg.noteon.duration, e->msg.noteon.release);
 		else
 			midiprint(MPNote, "%8ld NoteOn %hd %hd %hd", t,
-			    e->msg.noteon.chn, e->msg.noteon.note,
+			    CHN(e->msg), e->msg.noteon.note,
 			    e->msg.noteon.velocity);
 		return;
 	case KEYPRESSURE:
 		midiprint(MPNote, "%8ld KeyPressure %hd %hd %hd", t,
-		    e->msg.keypressure.chn, e->msg.keypressure.note,
+		    CHN(e->msg), e->msg.keypressure.note,
 		    e->msg.keypressure.velocity);
 		return;
 	case CONTROLCHANGE:
 		midiprint(MPNote, "%8ld ControlChange %hd %hd %hd", t,
-		    e->msg.controlchange.chn,
+		    CHN(e->msg),
 		    e->msg.controlchange.controller,
 		    e->msg.controlchange.value);
 		return;
 	case PROGRAMCHANGE:
 		midiprint(MPNote, "%8ld ProgramChange %hd %hd", t,
-		    e->msg.programchange.chn,
+		    CHN(e->msg),
 		    e->msg.programchange.program);
 		return;
 	case CHANNELPRESSURE:
 		midiprint(MPNote, "%8ld ChannelPressure %hd %hd", t,
-		    e->msg.channelpressure.chn,
+		    CHN(e->msg),
 		    e->msg.channelpressure.velocity);
 		return;
 	case PITCHWHEELCHANGE:
 		midiprint(MPNote, "%8ld PitchWheelChange %hd %hd", t,
-		    e->msg.pitchwheelchange.chn,
+		    CHN(e->msg),
 		    e->msg.pitchwheelchange.msb << 7 |
 		    e->msg.pitchwheelchange.lsb);
 		return;
 	}
 
-	switch (e->msg.generic.cmd) {
+	switch (e->msg.cmd) {
 	case SYSTEMEXCLUSIVE:
 		midiprint(MPNote, "%8ld SystemExclusive `%s'", t,
 		    strdat(e->msg.systemexclusive.data));
@@ -179,7 +179,7 @@ static void printevent(MFEvent *e) {
 		return;
 	case META:
 		midiprint(MPNote, "%8ld Meta %hd `%s'", t,
-		    e->msg.meta.type, strdat(e->msg.meta.data));
+		    e->msg.cmd, strdat(e->msg.meta.data));
 		return;
 	case SEQUENCENUMBER:
 		midiprint(MPNote, "%8ld SequenceNumber %hu", t,
@@ -255,15 +255,15 @@ static void printevent(MFEvent *e) {
 		return;
 	}
 
-	midiprint(MPNote, "%8ld Unknown %hu", t, e->msg.generic.cmd);
+	midiprint(MPNote, "%8ld Unknown %hu", t, e->msg.cmd);
 }
 
 static void playevent(struct mio_hdl *hdl, MFEvent *e) {
 	unsigned char buf[4];
 	size_t n = 0;
-	buf[n++] = e->msg.generic.cmd;
+	buf[n++] = e->msg.cmd;
 	/* No SysEx for now. */
-	switch (e->msg.generic.cmd & 0xf0) {
+	switch (e->msg.cmd & 0xf0) {
 	case PROGRAMCHANGE:
 		buf[n++] = e->msg.programchange.program;
 		break;
@@ -314,8 +314,7 @@ static void shutup(struct mio_hdl *hdl) {
 	e.time = 0;
 
 	for (i = 0; i < 16; i++) {
-		e.msg.generic.cmd = CONTROLCHANGE;
-		e.msg.controlchange.chn = i;
+		e.msg.cmd = CONTROLCHANGE | i;
 		/* Reset all controllers. */
 		e.msg.controlchange.controller = 121;
 		e.msg.controlchange.value = 0;
@@ -386,9 +385,9 @@ static void showtracks(Score *s) {
 			 * just terminate this loop on ENDOFTRACK.
 			 */
 			if (f_timed && dt &&
-			    e->msg.generic.cmd != ENDOFTRACK)
+			    e->msg.cmd != ENDOFTRACK)
 				msleep(s->div, tempo, dt);
-			if (e->msg.generic.cmd == SETTEMPO)
+			if (e->msg.cmd == SETTEMPO)
 				tempo = e->msg.settempo.tempo;
 			if (f_showevents)
 				printevent(e);
@@ -461,7 +460,7 @@ static void mergetracks(Score *s) {
 				exit(EXIT_FAILURE);
 			}
 			else
-				e->msg.empty.type = EMPTY;
+				e->msg.cmd = EMPTY;
 		}
 		track_clear(s->tracks[t]);
 	}
@@ -471,9 +470,9 @@ static void mergetracks(Score *s) {
 	/* Delete all but the last End Of Track events. */
 	track_rewind(s->tracks[0]);
 	e = track_step(s->tracks[0], 1);
-	assert(e != NULL && e->msg.endoftrack.type == ENDOFTRACK);
+	assert(e != NULL && e->msg.cmd == ENDOFTRACK);
 	while ((e = track_step(s->tracks[0], 1)))
-		if (e->msg.endoftrack.type == ENDOFTRACK)
+		if (e->msg.cmd == ENDOFTRACK)
 			track_delete(s->tracks[0]);
 }
 
@@ -515,7 +514,7 @@ static int write_tracks(MBUF *b, Score *s, int concat) {
 			 * event.
 			 */
 			if ((!concat || t == s->ntrk - 1 ||
-				e->msg.endoftrack.type != ENDOFTRACK) &&
+				e->msg.cmd != ENDOFTRACK) &&
 				!write_event(b, e, &running)) {
 				if (errno)
 					midiprint(MPFatal, "%s", strerror(errno));

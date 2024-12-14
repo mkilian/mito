@@ -70,7 +70,7 @@ static void pack(Track *t) {
 
 	from = to = 0;
 	while (from < t->nevents)
-		if (t->events[from].msg.generic.cmd == EMPTY)
+		if (t->events[from].msg.cmd == EMPTY)
 			from++;
 		else if (to < from) {
 			if (t->current == from)
@@ -105,15 +105,15 @@ static void start_insertion(Track *t) {
  * the addresses are compared.
  */
 
-#define isVoice(e)    ((e)->msg.generic.cmd != 0xff &&\
-                      ((e)->msg.generic.cmd & 0xf0))
+#define isVoice(e)    ((e)->msg.cmd != 0xff &&\
+                      ((e)->msg.cmd & 0xf0))
 #define isMeta(e)     (!isVoice(e))
-#define isProgram(e)  (((e)->msg.generic.cmd & 0xf0) == PROGRAMCHANGE)
-#define isControl(e)  (((e)->msg.generic.cmd & 0xf0) == CONTROLCHANGE)
-#define isNoteOn(e)   (((e)->msg.generic.cmd & 0xf0) == NOTEON &&\
+#define isProgram(e)  (((e)->msg.cmd & 0xf0) == PROGRAMCHANGE)
+#define isControl(e)  (((e)->msg.cmd & 0xf0) == CONTROLCHANGE)
+#define isNoteOn(e)   (((e)->msg.cmd & 0xf0) == NOTEON &&\
                         (e)->msg.noteon.velocity != 0)
-#define isNoteOff(e)  (((e)->msg.generic.cmd & 0xf0) == NOTEOFF ||\
-                       ((e)->msg.generic.cmd & 0xf0) == NOTEON &&\
+#define isNoteOff(e)  (((e)->msg.cmd & 0xf0) == NOTEOFF ||\
+                       ((e)->msg.cmd & 0xf0) == NOTEON &&\
                         (e)->msg.noteon.velocity == 0)
 
 static int _ecmp(const void *_e1, const void *_e2) {
@@ -124,17 +124,17 @@ static int _ecmp(const void *_e1, const void *_e2) {
 		return -1;
 	else if (e1->time > e2->time)
 		return 1;
-	else if (e2->msg.generic.cmd == ENDOFTRACK)
+	else if (e2->msg.cmd == ENDOFTRACK)
 		return -1;
-	else if (e1->msg.generic.cmd == ENDOFTRACK)
+	else if (e1->msg.cmd == ENDOFTRACK)
 		return 1;
 	else if (isMeta(e1) && isVoice(e2))
 		return -1;
 	else if (isMeta(e2) && isVoice(e1))
 		return 1;
-	else if (isVoice(e1) && isVoice(e2) && e1->msg.noteon.chn < e2->msg.noteon.chn)
+	else if (isVoice(e1) && isVoice(e2) && CHN(e1->msg) < CHN(e2->msg))
 		return -1;
-	else if (isVoice(e1) && isVoice(e2) && e2->msg.noteon.chn < e1->msg.noteon.chn)
+	else if (isVoice(e1) && isVoice(e2) && CHN(e2->msg) < CHN(e1->msg))
 		return 1;
 	else if (isProgram(e1) && !isProgram(e2))
 		return -1;
@@ -230,7 +230,7 @@ static MFEvent *_track_step(Track *t, int rew) {
 MFEvent *track_step(Track *t, int rew) {
 	MFEvent *e;
 
-	while ((e = _track_step(t, rew)) != NULL && e->msg.generic.cmd == EMPTY)
+	while ((e = _track_step(t, rew)) != NULL && e->msg.cmd == EMPTY)
 		; /* SKIP */
 
 	return e;
@@ -267,7 +267,7 @@ MFEvent *track_find(Track *t, long time) {
 
 	stop_insertion(t);
 	e = _track_find(t, time);
-	if (e && e->msg.generic.cmd == EMPTY)
+	if (e && e->msg.cmd == EMPTY)
 		e = track_step(t, 0);
 
 	return e;
@@ -305,7 +305,7 @@ int track_delete(Track *t) {
 		return 0;
 
 	clear_message(&(t->events[t->current].msg));
-	t->events[t->current].msg.generic.cmd = EMPTY;
+	t->events[t->current].msg.cmd = EMPTY;
 
 	  if (t->current + 1 < t->nevents) {
 		t->events[t->current].time = t->events[t->current + 1].time;
