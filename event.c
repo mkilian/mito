@@ -156,6 +156,9 @@ int read_message(MBUF *b, MFMessage *msg, unsigned char *rs) {
 		midiprint(MPError, "reading message: end of input");
 		return 0;
 	}
+	/* XXX: This relies on the order of bitfields when mapping a
+	 * generic cmd to channel voice or mode commands and channels.
+	 */
 	if (!((msg->generic.cmd = mbuf_get(b)) & 0x80)) {
 		mbuf_set(b, i);
 		msg->generic.cmd = *rs;
