@@ -140,11 +140,12 @@ long search_chunk(MBUF *b, CHUNK *chunk) {
 
 	if (chunk->type == MThd || chunk->type == MTrk)
 		return i;
-	else {
-		midiprint(MPFatal, "no type; this can't happen");
-		mbuf_set(b, p);
-		return -1;
-	}
+
+	midiprint(MPFatal,
+	    "pos %lu: unknown chunk type: %lx; can't happen",
+	    i, chunk->type);
+	mbuf_set(b, p);
+	return -1;
 }
 
 /*
