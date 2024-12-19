@@ -143,7 +143,7 @@ long search_chunk(MBUF *b, CHUNK *chunk) {
 
 	midiprint(MPFatal,
 	    "pos %lx: unknown chunk type: %lx; can't happen",
-	    i, chunk->type);
+	    p + i, chunk->type);
 	mbuf_set(b, p);
 	return -1;
 }
