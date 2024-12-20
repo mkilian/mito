@@ -362,13 +362,11 @@ static void showtracks(Score *s) {
 
 	for (t = 0; t < s->ntrk; t++) {
 		unsigned long ne = track_nevents(s->tracks[t]);
-		MFEvent last_ev = s->tracks[t]->events[ne - 1];
-		unsigned long maxt = last_ev.time;
 
 		track_rewind(s->tracks[t]);
 
 		if (f_showtlengths)
-			midiprint(MPNote, "       %7lu (%lu)", ne, maxt);
+			midiprint(MPNote, "       %7lu", ne);
 	}
 
 	if (!f_showevents && !f_play)
