@@ -433,7 +433,7 @@ void clear_message(MFMessage *msg) {
 		free(msg->sequencerspecific.data);
 		break;
 	}
-  msg->cmd = EMPTY;
+	msg->cmd = EMPTY;
 }
 
 /*

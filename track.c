@@ -105,16 +105,16 @@ static void start_insertion(Track *t) {
  * the addresses are compared.
  */
 
-#define isVoice(e)    ((e)->msg.cmd != 0xff &&\
-                      ((e)->msg.cmd & 0xf0))
+#define isVoice(e)    ((e)->msg.cmd != 0xff && \
+			((e)->msg.cmd & 0xf0))
 #define isMeta(e)     (!isVoice(e))
 #define isProgram(e)  (((e)->msg.cmd & 0xf0) == PROGRAMCHANGE)
 #define isControl(e)  (((e)->msg.cmd & 0xf0) == CONTROLCHANGE)
-#define isNoteOn(e)   (((e)->msg.cmd & 0xf0) == NOTEON &&\
-                        (e)->msg.noteon.velocity != 0)
-#define isNoteOff(e)  (((e)->msg.cmd & 0xf0) == NOTEOFF ||\
-                       ((e)->msg.cmd & 0xf0) == NOTEON &&\
-                        (e)->msg.noteon.velocity == 0)
+#define isNoteOn(e)   (((e)->msg.cmd & 0xf0) == NOTEON && \
+			(e)->msg.noteon.velocity != 0)
+#define isNoteOff(e)  (((e)->msg.cmd & 0xf0) == NOTEOFF || \
+			((e)->msg.cmd & 0xf0) == NOTEON && \
+			(e)->msg.noteon.velocity == 0)
 
 static int _ecmp(const void *_e1, const void *_e2) {
 	const MFEvent *e1 = _e1;
