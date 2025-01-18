@@ -155,13 +155,13 @@ void compressNoteOff(Track *t, int force) {
 
 	if (force) {
 		track_rewind(t);
-	while ((e = track_step(t, 0)) != NULL)
-		if ((e->msg.cmd & 0xf0) == NOTEOFF) {
-			e->msg.cmd &= 0x0f;
-			e->msg.cmd |= NOTEON;
-			e->msg.noteon.velocity = 0;
-			e->msg.noteon.duration = 0;
-		}
+		while ((e = track_step(t, 0)) != NULL)
+			if ((e->msg.cmd & 0xf0) == NOTEOFF) {
+				e->msg.cmd &= 0x0f;
+				e->msg.cmd |= NOTEON;
+				e->msg.noteon.velocity = 0;
+				e->msg.noteon.duration = 0;
+			}
 	}
 
 	track_setpos(t, p);

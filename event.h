@@ -72,7 +72,7 @@ typedef struct {
 	 * It's an error to try to write a `Note' message.
 	 */
 	long duration;
-	unsigned char release;;
+	unsigned char release;
 } MFNoteOn;
 
 typedef struct {
