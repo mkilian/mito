@@ -611,40 +611,41 @@ static int dofile(const char *spec) {
 	error = 0;
 
 	for (scorenum = 0; (s = score_read(b)); scorenum++) {
-		if (sc1 < 0 || (sc0 <= scorenum && scorenum <= sc1)) {
-			if (tr1 >= 0)
-				adjusttracks(s, tr0, tr1);
+		if (sc1 >= 0 && (sc0 > scorenum || scorenum > sc1))
+			continue;
 
-			if (!f_ungroup)
-				group(s);
+		if (tr1 >= 0)
+			adjusttracks(s, tr0, tr1);
 
-			if (f_mergetracks)
-				mergetracks(s);
+		if (!f_ungroup)
+			group(s);
 
-			if (f_showheaders)
-				midiprint(MPNote, "%s(%d): %7d %7d %7d",
-				    warnname, scorenum, s->fmt, s->ntrk, s->div);
-			else if (f_showtlengths || f_showevents)
-				midiprint(MPNote, "%s(%d):", warnname, scorenum);
+		if (f_mergetracks)
+			mergetracks(s);
 
-			if (!outdiv)
-				outdiv = s->div;
-			if (outformat < 0)
-				outformat = s->fmt;
+		if (f_showheaders)
+			midiprint(MPNote, "%s(%d): %7d %7d %7d",
+			    warnname, scorenum, s->fmt, s->ntrk, s->div);
+		else if (f_showtlengths || f_showevents)
+			midiprint(MPNote, "%s(%d):", warnname, scorenum);
 
-			showtracks(s);
+		if (!outdiv)
+			outdiv = s->div;
+		if (outformat < 0)
+			outformat = s->fmt;
 
-			if (outb) {
-				ungroup(s);
-				write_tracks(outb, s, f_concattracks);
-				if (f_concattracks)
-					outntrk++;
-				else
-					outntrk += s->ntrk;
-			}
+		showtracks(s);
 
-			score_clear(s);
+		if (outb) {
+			ungroup(s);
+			write_tracks(outb, s, f_concattracks);
+			if (f_concattracks)
+				outntrk++;
+			else
+				outntrk += s->ntrk;
 		}
+
+		score_clear(s);
 	}
 
 	if (!s) {
