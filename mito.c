@@ -610,9 +610,7 @@ static int dofile(const char *spec) {
 
 	error = 0;
 
-	for (scorenum = 0, s = NULL;
-	     mbuf_request(b, 1) && (s = score_read(b));
-	     scorenum++) {
+	for (scorenum = 0; (s = score_read(b)); scorenum++) {
 		if (sc1 < 0 || (sc0 <= scorenum && scorenum <= sc1)) {
 			if (tr1 >= 0)
 				adjusttracks(s, tr0, tr1);
