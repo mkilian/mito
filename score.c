@@ -103,10 +103,7 @@ static long read_header(MBUF *b, Score *s) {
 	pos = mbuf_pos(b);
 
 	/* Search the first chunk. */
-	if (mbuf_request(b, 1))
-		skip = search_chunk(b, &chunk);
-	else
-		skip = -1;
+	skip = search_chunk(b, &chunk);
 
 	if (skip < 0)
 		return -1;
@@ -125,10 +122,7 @@ static long read_header(MBUF *b, Score *s) {
 		pos = mbuf_pos(b);
 
 		/* We need the second chunk, too. */
-		if (mbuf_request(b, 1))
-			skip = search_chunk(b, &chunk);
-		else
-			skip = -1;
+		skip = search_chunk(b, &chunk);
 
 		if (skip < 0) {
 			midiprint(MPError, "no tracks");
@@ -162,10 +156,7 @@ static long read_track(MBUF *b) {
 
 	pos = mbuf_pos(b);
 
-	if (mbuf_request(b, 1))
-		skip = search_chunk(b, &chunk);
-	else
-		skip = -1;
+	skip = search_chunk(b, &chunk);
 
 	if (skip < 0)
 		return -1;
