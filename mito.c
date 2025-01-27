@@ -544,7 +544,7 @@ static int dofile(const char *spec) {
 	static char _name[FILENAME_MAX];
 	static char name[FILENAME_MAX];
 	MBUF *b;
-	Score _s, *s = &_s;
+	Score *s;
 	int scorenum;
 
 	/*
