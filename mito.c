@@ -610,7 +610,7 @@ static int dofile(const char *spec) {
 
 	error = 0;
 
-	for (scorenum = 0; (s = score_read(b)); scorenum++) {
+	for (scorenum = 0; (sc1 < 0 || scorenum <= sc1) && (s = score_read(b)); scorenum++) {
 		if (sc1 >= 0 && (sc0 > scorenum || scorenum > sc1))
 			continue;
 
@@ -648,13 +648,18 @@ static int dofile(const char *spec) {
 		score_clear(s);
 	}
 
-	if (!s) {
+	if (!s && scorenum == 0) {
 		midiprint(MPFatal, "no headers or tracks found");
 		mbuf_free(b);
 		return 1;
 	}
 
-	if (mbuf_request(b, 1))
+	/* XXX: this is also triggered when processing a file containing
+	 * two concatenated SMF scores where the second one contains chunk
+	 * with an unknown type, probably because search_chunk() resets
+	 * the position in this case.
+	 */
+	if ((sc1 < 0 || scorenum <= sc1) && mbuf_request(b, 1))
 		midiprint(MPWarn, "garbage at end of input");
 
 	mbuf_free(b);
