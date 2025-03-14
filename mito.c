@@ -373,7 +373,7 @@ static void showtracks(Score *s) {
 		return;
 
 	if (f_play && !(hdl = mio_open(MIO_PORTANY, MIO_OUT, 0)))
-		err(1, NULL);
+		errx(1, "failed to open midi port");
 
 	for (t = 0; !stop && t < s->ntrk; t++) {
 		unsigned long lastt = 0;
