@@ -306,7 +306,7 @@ static void stopplay(int sig) {
 }
 
 /* XXX: track channel states and write ordinary noteoff messages for
- * all active notes.
+ * all active notes (or just send a system reset real time message).
  */
 static void shutup(struct mio_hdl *hdl) {
 	int i;
